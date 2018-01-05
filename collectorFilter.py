@@ -13,6 +13,7 @@ class RefuseUrlFilter:
 
 class UrlCallBack:
     __next_callback = None
+    __pre_callback = None
     __url = str()
 
     def set_new_url(self, url):
@@ -23,14 +24,21 @@ class UrlCallBack:
 
     def callback(self, url):
         self.__url = url
-        self.solve_func(url)
+        if self.__pre_callback is not None:
+            self.__pre_callback.callback(self.__url)
+        self.solve_func(self.__url)
         if self.__next_callback is not None:
-            self.__next_callback.callback(url)
+            self.__next_callback.callback(self.__url)
 
-    def set_next_call_back(self, next_call_back):
-        if not isinstance(next_call_back, UrlCallBack):
-            print(next_call_back, 'is not a UrlCallBack instance')
-        self.__next_callback = next_call_back
+    def set_next_callback(self, next_callback):
+        if not isinstance(next_callback, UrlCallBack):
+            print(next_callback, 'is not a UrlCallBack instance')
+        self.__next_callback = next_callback
+
+    def set_pre_callback(self, pre_callback):
+        if not isinstance(pre_callback, UrlCallBack):
+            print(pre_callback, 'is not a UrlCallBack instance')
+        self.__pre_callback = pre_callback
 
     @property
     def url(self):
@@ -38,8 +46,9 @@ class UrlCallBack:
 
 
 class ContentCallback:
-
+    
     __next_callback = None
+    __pre_callback = None
     __url = str()
     __content = str()
     __title = str()
@@ -56,16 +65,23 @@ class ContentCallback:
     def solve_func(self, url, content, title):
         pass
 
-    def set_next_call_back(self, next_call_back):
-        if not isinstance(next_call_back, ContentCallback):
-            print(next_call_back, 'is not a ContentCallback instance')
-        self.__next_callback = next_call_back
+    def set_next_callback(self, next_callback):
+        if not isinstance(next_callback, ContentCallback):
+            print(next_callback, 'is not a ContentCallback instance')
+        self.__next_callback = next_callback
+
+    def set_pre_callback(self, pre_callback):
+        if not isinstance(pre_callback, ContentCallback):
+            print(pre_callback, 'is not a ContentCallback instance')
+        self.__pre_callback = pre_callback
 
     def callback(self, url, content, title):
         self.__url = url
         self.__content = content
         self.__title = title
-        self.solve_func(url, content, title)
+        if self.__pre_callback is not None:
+            self.__pre_callback.callback(self.__url, self.__content, self.__title)
+        self.solve_func(self.__url, self.__content, self.__title)
         if self.__next_callback is not None:
             self.__next_callback.callback(self.__url, self.__content, self.__title)
 

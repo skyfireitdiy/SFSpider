@@ -23,7 +23,7 @@ class MyUrlFilter(PassUrlFilter):
 
 s = Collector()
 my_callback = MainContentAnalyzer()
-my_callback.set_next_call_back(MyContentCallback())
+my_callback.set_next_callback(MyContentCallback())
 s.add_content_callback(my_callback)
 s.add_pass_url_filter(MyUrlFilter())
 s.start('http://news.baidu.com', 2)
