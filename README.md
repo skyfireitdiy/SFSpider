@@ -8,9 +8,11 @@
 
 
 
-`SFSpider`是一个通用的网络爬虫框架，目前包括收集器（`Collector`）、Content回调器（`PassUrlFilter`）、url黑名单过滤器（`RefuseUrlFilter`）、url回调器（`UrlCallBack`）、content回调器（`ContentCallback`），以及一个用于抽取网页正文的正文抽取器（`MainContentAnalyzer`）
+`SFSpider`是一个通用的网络爬虫框架，目前包括线程池（`ThreadPool`）、收集器（`Collector`）、Content回调器（`PassUrlFilter`）、url黑名单过滤器（`RefuseUrlFilter`）、url回调器（`UrlCallBack`）、content回调器（`ContentCallback`），以及一个用于抽取网页正文的正文抽取器（`MainContentAnalyzer`）
 
 * 模块介绍
+
+    * `ThreadPool`：供采集器使用（也可以单独抽取出来使用），实现多线程采集，提高采集效率。
     * `Collector`：采集器。该模块主要负责url的访问，采用深度优先遍历采集网页。在采集过程中调用`PassUrlFilter`和`RefuseUrlFilter`来确定是否需要访问，页面采集完成后，会调用`UrlCallBack`和`ContentCallback`分别对网页中的Url和网页内容处理。
     * `PassUrlFilter`：url白名单过滤器，url传到此模块，如果模块函数返回`True`，表示允许下一步访问，采集器会对该url进行采集。
     * `RefuseUrlFilter`：url黑名单过滤器。url传递到此模块，如果模块函数返回`True`，表示禁止对此网页的访问，采集器会跳过此网页。（url信息先流经此模块才会到达白名单过滤器）。
@@ -20,7 +22,7 @@
 
 * 模块结构
 
-    `Collector`运行过程中，与`PassUrlFilter`、`RefuseUrlFilter`、`UrlCallBack`、`ContentCallback`工作的流程如下图所示：
+    `Collector`运行过程中，与`PassUrlFilter`、`RefuseUrlFilter`、`UrlCallBack`、`ContentCallback`工作的流程如下图所示（`ThreadPool`为`Collector`内部使用的一个模块，用户不比直接对其操作，所以在此处没有画出）：
     ```flow
     start=>start: 开始
     end=>end: 结束
@@ -91,13 +93,14 @@
         from MainContentAnalyzer import MainContentAnalyzer
         import os
         import time
+        import threading
 
 
         # 定义自己的Content回调器
         class MyContentCallback(ContentCallback):
             # 重写solve_func，处理正文，此处将正文保存在以当前日期命名的文件夹下，文件名为网页标题
             def solve_func(self, url, content, title):
-                print("文章标题：", title)
+                print(threading.current_thread().getName(), "文章标题：", title)
                 # 生成目录名称
                 folder_name = "news_" + time.strftime("%Y-%m-%d", time.localtime())
                 # 若目录不存在，创建目录
@@ -112,7 +115,7 @@
         class MyUrlCallback(UrlCallBack):
             # 此处只是打印扫描到了哪个url
             @staticmethod
-            def filter(url):
+            def callback(url):
                 print("get:", url)
                 return True
 
@@ -138,10 +141,17 @@
         s.add_url_callback(MyUrlCallback())
         # 添加我们的黑名单过滤器
         s.add_refuse_url_filter(MyRefuseUrlFilter())
-        # 开始采集网页，采集深度为2，起始URL为http://news.baidu.com（起始网页不会被黑名单过滤器过滤掉）
-        s.start('http://news.baidu.com', 2)
+        # 开始采集网页，采集深度为2，使用8个线程采集，起始URL为http://news.baidu.com（起始网页不会被黑名单过滤器过滤掉）
+        s.start('http://news.baidu.com', 2, 8, True)
 
         ```
 
         ​
+
+
+
+
+
+
+
 
