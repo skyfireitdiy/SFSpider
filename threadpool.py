@@ -126,3 +126,4 @@ class ThreadPool:
             task_thread.start()
             self.__thread_list.append(task_thread)
         self.__notify_all_thread()
+        self.__started = True
