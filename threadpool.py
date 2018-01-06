@@ -115,6 +115,7 @@ class ThreadPool:
         """
         for th in self.__thread_list:
             th.join(timeout)
+        self.__started = False
 
     def start(self):
         """
