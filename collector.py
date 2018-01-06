@@ -8,12 +8,12 @@ from collectorFilter import ContentCallback
 from threadpool import ThreadPool
 from bs4 import BeautifulSoup
 
+"""
+网页收集器（不支持js执行）
+"""
+
 
 class Collector:
-    """
-    网页收集器（不支持js执行）
-    """
-
     def __init__(self):
         self.__header = dict()
         self.__header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
@@ -127,7 +127,7 @@ class Collector:
         """
         self.__max_deep = deep
         self.__thread_pool.set_work_thread_count(thread_count)
-        if isinstance(begin_page,list):
+        if isinstance(begin_page, list):
             for page in begin_page:
                 self.__thread_pool.add_task(self.__get_page, page, 0)
         else:
