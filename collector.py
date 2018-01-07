@@ -1,8 +1,7 @@
 # coding=utf-8
 
 import httplib2
-from collectorFilter import PassUrlFilter
-from collectorFilter import RefuseUrlFilter
+from collectorFilter import UrlFilter
 from collectorFilter import UrlCallBack
 from collectorFilter import ContentCallback
 from threadpool import ThreadPool
@@ -23,8 +22,7 @@ class Collector:
         self.__max_deep = 1
         self.__url_callback = set()
         self.__text_callback = set()
-        self.__pass_url = set()
-        self.__refuse_url = set()
+        self.__url_filter = UrlFilter()
         self.__visited_url = set()
         self.__codec_set = ["utf_8", "gb18030", "utf_8_sig", "gbk", "gb2312", "ascii", "big5", "cp424", "cp437",
                             "cp500",
@@ -96,21 +94,7 @@ class Collector:
                     url = i.attrs['src']
                 for k in self.__url_callback:
                     k.callback(url)
-                flag = False
-                for k in self.__refuse_url:
-                    if k.filter(url):
-                        flag = True
-                        break
-                if flag:
-                    continue
-                flag = True
-                if len(self.__pass_url) != 0:
-                    flag = False
-                    for k in self.__pass_url:
-                        if k.filter(url):
-                            flag = True
-                            break
-                if flag:
+                if self.__url_filter.filter(url):
                     self.__thread_pool.add_task(self.__get_page, url, curr_deep + 1)
         else:
             print('status error:', response)
@@ -137,26 +121,16 @@ class Collector:
         if wait_exit:
             self.__thread_pool.wait_exit()
 
-    def add_pass_url_filter(self, pass_url):
+    def set_url_filter(self, url_filter):
         """
-        增加白名单过滤器
+        增加Url过滤器
         Args:
-            pass_url: Url白名单过滤器对象
+            url_filter: Url过滤器对象
         """
-        if not isinstance(pass_url, PassUrlFilter):
-            print(pass_url, 'is not a PassUrlFilter instance')
+        if not isinstance(url_filter, UrlFilter):
+            print(url_filter, 'is not a UrlFilter instance')
             return
-        self.__pass_url.add(pass_url)
-
-    def add_refuse_url_filter(self, refuse_url):
-        """
-        增加黑名单过滤器
-        Args:
-            refuse_url:Url黑名单过滤器
-        """
-        if not isinstance(refuse_url, RefuseUrlFilter):
-            print(refuse_url, 'is not a RefuseUrlFilter instance')
-        self.__refuse_url.add(refuse_url)
+        self.__url_filter = url_filter
 
     def add_url_callback(self, callback):
         """

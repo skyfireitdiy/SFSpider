@@ -9,7 +9,7 @@ import threading
 '定义自己的Content回调器'
 
 
-class MyContentCallbsack(ContentCallback):
+class MyContentCallback(ContentCallback):
     """重写solve_func，处理正文，此处将正文保存在以当前日期命名的文件夹下，文件名为网页标题"""
 
     def solve_func(self, url, content, title):
@@ -36,16 +36,16 @@ class MyUrlCallback(UrlCallBack):
         return True
 
 
-'定义自己的url黑名单过滤器'
+'定义自己的url过滤器'
 
 
-class MyRefuseUrlFilter(RefuseUrlFilter):
+class MyUrlFilter(UrlFilter):
     """过滤掉含有“sohu”的url"""
 
     def filter(self, url):
         if url.find('sohu') != -1:
-            return True
-        return False
+            return False
+        return True
 
 
 '定义一个采集器'
@@ -58,7 +58,7 @@ my_content_callback.set_next_callback(MyContentCallback())
 s.add_content_callback(my_content_callback)
 '添加我们的url回调器'
 s.add_url_callback(MyUrlCallback())
-'添加我们的黑名单过滤器'
-s.add_refuse_url_filter(MyRefuseUrlFilter())
+'添加我们的url过滤器'
+s.set_url_filter(MyUrlFilter())
 '开始采集网页，采集深度为2，使用8个线程采集，起始URL为http://news.baidu.com（起始网页不会被黑名单过滤器过滤掉）'
 s.start('http://news.baidu.com', 2, 8, True)

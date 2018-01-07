@@ -1,9 +1,9 @@
 # coding=utf-8
 
 
-class PassUrlFilter:
+class UrlFilter:
     """
-    Url白名单过滤器
+    Url过滤器
     """
 
     def __init__(self):
@@ -12,33 +12,13 @@ class PassUrlFilter:
     @staticmethod
     def filter(url):
         """
-        白名单过滤判定
+        Url过滤判定
         Args：
             url:要访问的url
         Returns:
             返回true表示继续访问该url
         """
         return True
-
-
-class RefuseUrlFilter:
-    """
-    Url黑名单过滤器（优先级比通过过滤器高）
-    """
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def filter(url):
-        """
-        黑名单过滤判定
-        Args：
-            url:要访问的url
-        Returns:
-            返回True表示该url不会被继续访问
-        """
-        return False
 
 
 class UrlCallBack:
