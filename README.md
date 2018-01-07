@@ -13,7 +13,7 @@
 * 模块介绍
 
     * `ThreadPool`：供采集器使用（也可以单独抽取出来使用），实现多线程采集，提高采集效率。
-    * `Collector`：采集器。该模块主要负责url的访问，采用深度优先遍历采集网页。在采集过程中调用`PassUrlFilter`和`RefuseUrlFilter`来确定是否需要访问，页面采集完成后，会调用`UrlCallBack`和`ContentCallback`分别对网页中的Url和网页内容处理。
+    * `Collector`：采集器。该模块主要负责url的访问，采用深度优先遍历采集网页。在采集过程中调用`UrlFilter`来确定是否需要访问，页面采集完成后，会调用`UrlCallBack`和`ContentCallback`分别对网页中的Url和网页内容处理。
     * `UrlFilter`：url过滤器，url传到此模块，如果模块函数返回`True`，表示允许下一步访问，采集器会对该url进行采集，返回`False`则不会对该Url进行下一步采集。
     * `UrlCallBack`：url回调器。网页采集完毕后，采集器会扫描网页上的`<a>`标签链接，对于每个链接，都会调用此模块处理。
     * `ContentCallback`：content回调器。网页采集完毕后，采集器会将网页url、网页标题、网页html正文传递到此模块处理。
