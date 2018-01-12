@@ -94,8 +94,9 @@ class Collector:
                     url = i.attrs['src']
                 for k in self.__url_callback:
                     k.callback(url)
-                if self.__url_filter.filter(url):
-                    self.__thread_pool.add_task(self.__get_page, url, curr_deep + 1)
+                tmp_url = self.__url_filter.filter(url)
+                if tmp_url is not None:
+                    self.__thread_pool.add_task(self.__get_page, tmp_url, curr_deep + 1)
         else:
             print('status error:', response)
             print(content)

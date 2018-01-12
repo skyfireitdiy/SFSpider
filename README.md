@@ -86,6 +86,7 @@
 
         '定义自己的Content回调器'
 
+
         class MyContentCallback(ContentCallback):
             """重写solve_func，处理正文，此处将正文保存在以当前日期命名的文件夹下，文件名为网页标题"""
 
@@ -100,25 +101,19 @@
                 with open(folder_name + "/" + title + ".txt", 'w') as fp:
                     fp.write(content)
 
-        '定义自己的Url回调器'
-
-        class MyUrlCallback(UrlCallBack):
-            """此处只是打印扫描到了哪个url"""
-
-            @staticmethod
-            def callback(url):
-                print("get:", url)
-                return True
 
         '定义自己的url过滤器'
 
+
         class MyUrlFilter(UrlFilter):
-            """过滤掉含有“sohu”的url"""
+            """过滤含有“/post-develop-”的url，追加前缀"""
 
             def filter(self, url):
-                if url.find('sohu') != -1:
-                    return False
-                return True
+                if url.startswith('/post-develop-'):
+                    tmp_url = "http://bbs.tianya.cn" + url
+                    return tmp_url
+                return None
+
 
         '定义一个采集器'
         s = Collector()
@@ -128,13 +123,10 @@
         my_content_callback.set_next_callback(MyContentCallback())
         '将Content回调器加入收集器'
         s.add_content_callback(my_content_callback)
-        '添加我们的url回调器'
-        s.add_url_callback(MyUrlCallback())
         '添加我们的url过滤器'
         s.set_url_filter(MyUrlFilter())
-        '开始采集网页，采集深度为2，使用8个线程采集，起始URL为http://news.baidu.com（起始网页不会被黑名单过滤器过滤掉）'
-        s.start('http://news.baidu.com', 2, 8, True)
-
+        '开始采集网页，采集深度为2，使用8个线程采集'
+        s.start('http://bbs.tianya.cn/list-develop-1.shtml', 2, 8, True)
         ```
 
         ​

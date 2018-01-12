@@ -16,9 +16,9 @@ class UrlFilter:
         Args：
             url:要访问的url
         Returns:
-            返回true表示继续访问该url
+            返回要访问的URL，如果拒绝访问则返回None
         """
-        return True
+        return url
 
 
 class UrlCallBack:
