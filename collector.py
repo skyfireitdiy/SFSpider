@@ -68,7 +68,7 @@ class Collector:
             url: 要获取的url
             curr_deep: 当前深度
         """
-        if curr_deep == self.__max_deep:
+        if curr_deep >= self.__max_deep:
             return
         if url in self.__visited_url:
             return
@@ -122,6 +122,14 @@ class Collector:
         if wait_exit:
             self.__thread_pool.wait_exit()
 
+    def add_task(self, page, start_deep=0):
+        """
+        增加新的采集任务
+        Args:
+            page: 要采集的页面
+        """
+        self.__thread_pool.add_task(self.__get_page, page, start_deep)
+
     def set_url_filter(self, url_filter):
         """
         增加Url过滤器
@@ -154,3 +162,11 @@ class Collector:
             print(callback, 'is not a ContentCallback instance')
             return
         self.__text_callback.add(callback)
+
+    def max_deep(self):
+        """
+        获取最大采集深度
+        Returns:
+            返回最大采集深度
+        """
+        return self.__max_deep
