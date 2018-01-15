@@ -13,6 +13,7 @@ class ThreadPool:
         """
         线程池的任务执行类
         """
+
         def __init__(self, outter):
             threading.Thread.__init__(self)
             self.__outter = outter
@@ -74,7 +75,7 @@ class ThreadPool:
         唤醒所有在等待任务的线程，开始调度
         """
         self.condition.acquire()
-        self.condition.notify()
+        self.condition.notify_all()
         self.condition.release()
 
     def add_task(self, *task):

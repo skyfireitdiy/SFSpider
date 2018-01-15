@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 
 
 class Collector:
+
     def __init__(self):
         self.__header = dict()
         self.__header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
@@ -23,6 +24,8 @@ class Collector:
         self.__text_callback = set()
         self.__url_filter = UrlFilter()
         self.__visited_url = set()
+
+        self.__thread_pool = ThreadPool()
         self.__codec_set = ["utf_8", "gb18030", "utf_8_sig", "gbk", "gb2312", "ascii", "big5", "cp424", "cp437",
                             "cp500",
                             "cp850", "cp852", "cp855", "cp856", "cp857", "cp858", "cp860", "cp861", "cp862", "cp863",
@@ -39,7 +42,6 @@ class Collector:
                             "utf_7", "idna", "mbcs", "palmos", "punycode", "big5hkscs", "cp037", "cp273",
                             "raw_unicode_escape", "undefined", "unicode_escape", "unicode_internal", "base64_codec [1]",
                             "bz2_codec", "hex_codec", "quopri_codec", "uu_codec", "zlib_codec", "rot_13"]
-        self.__thread_pool = ThreadPool()
 
     def __decode_str(self, content):
         """
@@ -175,5 +177,6 @@ class Collector:
     def clean_history(self):
         """
         清除历史记录
+        Returns:
         """
         self.__visited_url.clear()
