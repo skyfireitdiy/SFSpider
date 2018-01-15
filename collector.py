@@ -18,7 +18,6 @@ class Collector:
         self.__header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                                       'Chrome/63.0.3239.84 Safari/537.36'
         self.__page_set = set()
-        self.__http_client = httplib2.Http('.cache')
         self.__max_deep = 1
         self.__url_callback = set()
         self.__text_callback = set()
@@ -74,7 +73,8 @@ class Collector:
             return
         self.__visited_url.add(url)
         try:
-            response, content = self.__http_client.request(url, 'GET', headers=self.__header)
+            http_client = httplib2.Http('.cache')
+            response, content = http_client.request(url, 'GET', headers=self.__header)
         except Exception as e:
             print("http error", e)
             return
@@ -118,8 +118,8 @@ class Collector:
         else:
             self.__thread_pool.add_task(self.__get_page, begin_page, 0)
         self.__thread_pool.start()
-        self.__thread_pool.exit_when_no_task()
         if wait_exit:
+            self.__thread_pool.exit_when_no_task()
             self.__thread_pool.wait_exit()
 
     def add_task(self, page, start_deep=0):
@@ -127,6 +127,7 @@ class Collector:
         增加新的采集任务
         Args:
             page: 要采集的页面
+            start_deep: 起始深度
         """
         self.__thread_pool.add_task(self.__get_page, page, start_deep)
 
@@ -170,3 +171,9 @@ class Collector:
             返回最大采集深度
         """
         return self.__max_deep
+
+    def clean_history(self):
+        """
+        清除历史记录
+        """
+        self.__visited_url.clear()
