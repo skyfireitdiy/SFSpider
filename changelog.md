@@ -1,5 +1,10 @@
 **skyfire** *2018/01/17*
 
+1. 为采集器、url回调器、content回调器增加扩展数据（extend），方便追踪、控制
+2. 将http客户端由临时变量修改为线程局部存储（TLS），改善效率
+
+**skyfire** *2018/01/17*
+
 1. 修改回调器中的对象为Thread Local Strong Storage（线程局部存储），防止线程池中的线程相互影响
 
 **skyfire** *2018/01/15*

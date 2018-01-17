@@ -31,6 +31,7 @@ class UrlCallBack:
     __pre_callback = None
     __local = threading.local()
     __local.__url = str()
+    __local.__extend = dict()
 
     def __init__(self):
         pass
@@ -43,26 +44,29 @@ class UrlCallBack:
         """
         self.__local.__url = url
 
-    def solve_func(self, url):
+    def solve_func(self, url, extend):
         """
         处理过程，该方法应该被重写
         Args:
             url:要处理的url
+            extend:附加数据
         """
         pass
 
-    def callback(self, url):
+    def callback(self, url, extend):
         """
         回调接口（不应修改）
         Args:
             url:要处理的url
+            extend: 附加数据
         """
         self.__local.__url = url
+        self.__local.__extend = extend
         if self.__pre_callback is not None:
-            self.__pre_callback.callback(self.__local.__url)
-        self.solve_func(self.__local.__url)
+            self.__pre_callback.callback(self.__local.__url, self.__local.__extend)
+        self.solve_func(self.__local.__url, self.__local.extend)
         if self.__next_callback is not None:
-            self.__next_callback.callback(self.__local.__url)
+            self.__next_callback.callback(self.__local.__url, self.__local.__extend)
 
     def set_next_callback(self, next_callback):
         """
@@ -99,13 +103,13 @@ class ContentCallback:
     网页内容回调函数
     """
 
-
     __next_callback = None
     __pre_callback = None
     __local = threading.local()
     __local.__url = str()
     __local.__content = str()
     __local.__title = str()
+    __local.__extend = dict()
 
     def __init__(self):
         pass
@@ -134,13 +138,14 @@ class ContentCallback:
         """
         self.__local.__title = title
 
-    def solve_func(self, url, content, title):
+    def solve_func(self, url, content, title, extend):
         """
         处理过程，应该被重写
         Args:
             url:要处理的url
             content:要处理的内容
             title:要处理的标题
+            extend:附加数据
         """
         pass
 
@@ -164,22 +169,24 @@ class ContentCallback:
             print(pre_callback, 'is not a ContentCallback instance')
         self.__pre_callback = pre_callback
 
-    def callback(self, url, content, title):
+    def callback(self, url, content, title, extend):
         """
         回调接口（不应修改）
         Args:
             url:要处理的url
             content:要处理的内容
             title:要处理的标题
+            extend: 附加数据
         """
         self.__local.__url = url
         self.__local.__content = content
         self.__local.__title = title
+        self.__local.__extend = extend
         if self.__pre_callback is not None:
-            self.__pre_callback.callback(self.__local.__url, self.__local.__content, self.__local.__title)
-        self.solve_func(self.__local.__url, self.__local.__content, self.__local.__title)
+            self.__pre_callback.callback(self.__local.__url, self.__local.__content, self.__local.__title, self.__local.__extend)
+        self.solve_func(self.__local.__url, self.__local.__content, self.__local.__title, self.__local.__extend)
         if self.__next_callback is not None:
-            self.__next_callback.callback(self.__local.__url, self.__local.__content, self.__local.__title)
+            self.__next_callback.callback(self.__local.__url, self.__local.__content, self.__local.__title, self.__local.__extend)
 
     @property
     def url(self):
