@@ -1,4 +1,5 @@
 # coding=utf-8
+import threading
 
 
 class UrlFilter:
@@ -26,10 +27,13 @@ class UrlCallBack:
     网页url处理回调器
     """
 
+    __next_callback = None
+    __pre_callback = None
+    __local = threading.local()
+    __local.__url = str()
+
     def __init__(self):
-        self.__next_callback = None
-        self.__pre_callback = None
-        self.__url = str()
+        pass
 
     def set_new_url(self, url):
         """
@@ -37,7 +41,7 @@ class UrlCallBack:
         Args:
             url:新的url
         """
-        self.__url = url
+        self.__local.__url = url
 
     def solve_func(self, url):
         """
@@ -53,12 +57,12 @@ class UrlCallBack:
         Args:
             url:要处理的url
         """
-        self.__url = url
+        self.__local.__url = url
         if self.__pre_callback is not None:
-            self.__pre_callback.callback(self.__url)
-        self.solve_func(self.__url)
+            self.__pre_callback.callback(self.__local.__url)
+        self.solve_func(self.__local.__url)
         if self.__next_callback is not None:
-            self.__next_callback.callback(self.__url)
+            self.__next_callback.callback(self.__local.__url)
 
     def set_next_callback(self, next_callback):
         """
@@ -87,7 +91,7 @@ class UrlCallBack:
         Returns:
             当前url
         """
-        return self.__url
+        return self.__local.__url
 
 
 class ContentCallback:
@@ -95,14 +99,16 @@ class ContentCallback:
     网页内容回调函数
     """
 
-    def __init__(self):
-        pass
 
     __next_callback = None
     __pre_callback = None
-    __url = str()
-    __content = str()
-    __title = str()
+    __local = threading.local()
+    __local.__url = str()
+    __local.__content = str()
+    __local.__title = str()
+
+    def __init__(self):
+        pass
 
     def set_new_url(self, url):
         """
@@ -110,7 +116,7 @@ class ContentCallback:
         Args:
             url:新的url
         """
-        self.__url = url
+        self.__local.__url = url
 
     def set_new_content(self, content):
         """
@@ -118,7 +124,7 @@ class ContentCallback:
         Args:
             content:新的内容
         """
-        self.__content = content
+        self.__local.__content = content
 
     def set_new_title(self, title):
         """
@@ -126,7 +132,7 @@ class ContentCallback:
         Args:
             title:新标题
         """
-        self.__title = title
+        self.__local.__title = title
 
     def solve_func(self, url, content, title):
         """
@@ -166,14 +172,14 @@ class ContentCallback:
             content:要处理的内容
             title:要处理的标题
         """
-        self.__url = url
-        self.__content = content
-        self.__title = title
+        self.__local.__url = url
+        self.__local.__content = content
+        self.__local.__title = title
         if self.__pre_callback is not None:
-            self.__pre_callback.callback(self.__url, self.__content, self.__title)
-        self.solve_func(self.__url, self.__content, self.__title)
+            self.__pre_callback.callback(self.__local.__url, self.__local.__content, self.__local.__title)
+        self.solve_func(self.__local.__url, self.__local.__content, self.__local.__title)
         if self.__next_callback is not None:
-            self.__next_callback.callback(self.__url, self.__content, self.__title)
+            self.__next_callback.callback(self.__local.__url, self.__local.__content, self.__local.__title)
 
     @property
     def url(self):
@@ -182,7 +188,7 @@ class ContentCallback:
         Returns:
             当前Url
         """
-        return self.__url
+        return self.__local.__url
 
     @property
     def content(self):
@@ -191,7 +197,7 @@ class ContentCallback:
         Returns:
             当前内容
         """
-        return self.__content
+        return self.__local.__content
 
     @property
     def title(self):
@@ -200,4 +206,4 @@ class ContentCallback:
         Returns:
             当前标题
         """
-        return self.__title
+        return self.__local.__title

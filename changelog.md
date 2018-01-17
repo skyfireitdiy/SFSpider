@@ -1,3 +1,7 @@
+**skyfire** *2018/01/17*
+
+1. 修改回调器中的对象为Thread Local Strong Storage（线程局部存储），防止线程池中的线程相互影响
+
 **skyfire** *2018/01/15*
 
 1. 修改线程池添加任务唤醒方式为`notify_all`

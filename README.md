@@ -86,7 +86,6 @@
 
         '定义自己的Content回调器'
 
-
         class MyContentCallback(ContentCallback):
             """重写solve_func，处理正文，此处将正文保存在以当前日期命名的文件夹下，文件名为网页标题"""
 
@@ -101,9 +100,7 @@
                 with open(folder_name + "/" + title + ".txt", 'w') as fp:
                     fp.write(content)
 
-
         '定义自己的url过滤器'
-
 
         class MyUrlFilter(UrlFilter):
             """过滤含有“/post-develop-”的url，追加前缀"""
@@ -113,7 +110,6 @@
                     tmp_url = "http://bbs.tianya.cn" + url
                     return tmp_url
                 return None
-
 
         '定义一个采集器'
         s = Collector()
@@ -129,9 +125,21 @@
         s.start('http://bbs.tianya.cn/list-develop-1.shtml', 2, 8, True)
         ```
 
+* 注意
+
+    * 在继承URL回调器和Content回调器时，如果对象中添加了成员变量，必须放到TLS（线程局部存储）中，防止线程间对成员变量的访问互相影响，如下：
+
+        ```cpp
+        class MyContentCallback(ContentCallback):
+        	__local = threading.local()
+            # ...
+            def solve_func(self, url, content, title):
+        		__local.x = 10
+                # ...
+                # use __local.x
+        ```
+
         ​
-
-
 
 
 
