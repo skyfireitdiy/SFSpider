@@ -44,6 +44,13 @@ class UrlCallBack:
         """
         self.__local.__url = url
 
+    def set_new_extend(self, extend):
+        """
+        设置新的附加数据
+        :param extend: 附加数据
+        """
+        self.__local.__extend = extend
+
     def solve_func(self, url, extend):
         """
         处理过程，该方法应该被重写
@@ -97,6 +104,14 @@ class UrlCallBack:
         """
         return self.__local.__url
 
+    @property
+    def extend(self):
+        """
+        获取附加数据
+        :return: 附加数据
+        """
+        return self.__local.__extend
+
 
 class ContentCallback:
     """
@@ -137,6 +152,13 @@ class ContentCallback:
             title:新标题
         """
         self.__local.__title = title
+
+    def set_new_extend(self, extend):
+        """
+        设置新的附加数据
+        :param extend: 附加数据
+        """
+        self.__local.__extend = extend
 
     def solve_func(self, url, content, title, extend):
         """
@@ -214,3 +236,11 @@ class ContentCallback:
             当前标题
         """
         return self.__local.__title
+
+    @property
+    def extend(self):
+        """
+        获取附加数据
+        :return: 附加数据
+        """
+        return self.__local.__extend

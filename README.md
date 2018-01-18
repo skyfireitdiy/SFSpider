@@ -22,6 +22,7 @@
 * 模块结构
 
     `Collector`运行过程中，与`UrlFilter`、`UrlCallBack`、`ContentCallback`工作的流程如下图所示（`ThreadPool`为`Collector`内部使用的一个模块，用户不比直接对其操作，所以在此处没有画出）：
+
     ```flow
     start=>start: 开始
     end=>end: 结束
@@ -36,11 +37,9 @@
     pass_url(yes,right)->next->end
     ```
 
+    ​在采集器中，可以有多个url白名单过滤器、url黑名单过滤器、url回调器、content回调器，而回调器可以挂接上下级回调器，结构如下：
 
-    ​```
-    在采集器中，可以有多个url白名单过滤器、url黑名单过滤器、url回调器、content回调器，而回调器可以挂接上下级回调器，结构如下：
-    
-    ​```mermaid
+    ```mermaid
     graph TD;
     采集器-->Url过滤器
     采集器-->Url回调器1
@@ -67,7 +66,9 @@
     Content回调器7-->Content回调器8
     Content回调器8-->Content回调器9
     Content回调器9-->Content回调器...
-    ​```
+    ```
+
+
 
 * 示例程序
 
@@ -139,17 +140,23 @@
                 # use __local.x
         ```
 
-        ​
 
+* 依赖的python包（不包括内置）
 
+    * ​httplib2
+    * BeautifulSoup
+    * snownlp
+    * textblob
 
+    可使用以下命令安装：
 
+    ```shell
+    pip3 install httplib2
+    pip3 install beautifulsoup4
+    pip3 install snownlp
+    pip3 install -U textblob
+    python3 -m textblob.download_corpora
+    ```
 
-
-
-
-
-
-
-
+    ​
 

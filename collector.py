@@ -123,7 +123,7 @@ class Collector:
         if isinstance(begin_page, list):
             for page in begin_page:
                 self.__thread_pool.add_task(self.__get_page, page, 0, extend)
-        else:
+        elif isinstance(begin_page, str):
             self.__thread_pool.add_task(self.__get_page, begin_page, 0, extend)
         self.__thread_pool.start()
         if wait_exit:
