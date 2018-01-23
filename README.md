@@ -11,8 +11,6 @@
 `SFSpider`是一个通用的网络爬虫框架，目前包括线程池（`ThreadPool`）、收集器（`Collector`）、Url过滤器（`UrlFilter`）、url回调器（`UrlCallBack`）、content回调器（`ContentCallback`），以及一个用于抽取网页正文的正文抽取器（`MainContentAnalyzer`）
 
 * 模块介绍
-
-    * `ThreadPool`：供采集器使用（也可以单独抽取出来使用），实现多线程采集，提高采集效率。
     * `Collector`：采集器。该模块主要负责url的访问，采用深度优先遍历采集网页。在采集过程中调用`UrlFilter`来确定是否需要访问，页面采集完成后，会调用`UrlCallBack`和`ContentCallback`分别对网页中的Url和网页内容处理。
     * `UrlFilter`：url过滤器，url传到此模块，如果模块函数返回`True`，表示允许下一步访问，采集器会对该url进行采集，返回`False`则不会对该Url进行下一步采集。
     * `UrlCallBack`：url回调器。网页采集完毕后，采集器会扫描网页上的`<a>`标签链接，对于每个链接，都会调用此模块处理。
@@ -21,7 +19,7 @@
 
 * 模块结构
 
-    `Collector`运行过程中，与`UrlFilter`、`UrlCallBack`、`ContentCallback`工作的流程如下图所示（`ThreadPool`为`Collector`内部使用的一个模块，用户不比直接对其操作，所以在此处没有画出）：
+    `Collector`运行过程中，与`UrlFilter`、`UrlCallBack`、`ContentCallback`工作的流程如下图所示：
 
     ```flow
     start=>start: 开始
@@ -78,18 +76,19 @@
 
         ```python
         # coding=utf-8
-        from collector import Collector
-        from collectorFilter import *
-        from MainContentAnalyzer import MainContentAnalyzer
         import os
         import time
-        import threading
-
+        
+        from SFSpider.MainContentAnalyzer import MainContentAnalyzer
+        from SFSpider.collector import Collector
+        from SFSpider.collectorFilter import *
+        
         '定义自己的Content回调器'
-
+        
+        
         class MyContentCallback(ContentCallback):
             """重写solve_func，处理正文，此处将正文保存在以当前日期命名的文件夹下，文件名为网页标题"""
-
+        
             def solve_func(self, url, content, title):
                 print(threading.current_thread().getName(), "文章标题：", title)
                 '生成目录名称'
@@ -100,18 +99,21 @@
                 '写入正文'
                 with open(folder_name + "/" + title + ".txt", 'w') as fp:
                     fp.write(content)
-
+        
+        
         '定义自己的url过滤器'
-
+        
+        
         class MyUrlFilter(UrlFilter):
             """过滤含有“/post-develop-”的url，追加前缀"""
-
+        
             def filter(self, url):
                 if url.startswith('/post-develop-'):
                     tmp_url = "http://bbs.tianya.cn" + url
                     return tmp_url
                 return None
-
+        
+        
         '定义一个采集器'
         s = Collector()
         '生成一个正文提取器（content回调器）'
@@ -124,6 +126,7 @@
         s.set_url_filter(MyUrlFilter())
         '开始采集网页，采集深度为2，使用8个线程采集'
         s.start('http://bbs.tianya.cn/list-develop-1.shtml', 2, 8, True)
+
         ```
 
 * 注意
@@ -145,17 +148,12 @@
 
     * ​httplib2
     * BeautifulSoup
-    * snownlp
-    * textblob
 
     可使用以下命令安装：
 
     ```shell
     pip3 install httplib2
     pip3 install beautifulsoup4
-    pip3 install snownlp
-    pip3 install -U textblob
-    python3 -m textblob.download_corpora
     ```
 
     ​

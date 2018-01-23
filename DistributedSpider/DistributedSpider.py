@@ -1,5 +1,5 @@
-from TcpServer import TcpServer
-from TcpClient import TcpClient
+from DistributedSpider.TcpServer import TcpServer
+from DistributedSpider.TcpClient import TcpClient
 
 
 class DistributedSpider(object):

@@ -1,3 +1,29 @@
+import struct
+
+
+def sf_bind(func, *args):
+    """
+    bind，将参数绑定至函数，生成新的函数
+    :param func: 要绑定的函数
+    :param args: 参数
+    :return: 新函数
+    """
+
+    def _func(*_args):
+        return func(*args, *_args)
+
+    return _func
+
+
+def sf_make_pack(data):
+    """
+    打包数据
+    :param data: 数据
+    :return: 增加了数据长度包头的数据
+    """
+    return struct.pack("i", len(data)) + data
+
+
 codec_set = ["utf_8", "gb18030", "utf_8_sig", "gbk", "gb2312", "ascii", "big5", "cp424", "cp437", "cp500",
              "cp850", "cp852", "cp855", "cp856", "cp857", "cp858", "cp860", "cp861", "cp862", "cp863",
              "cp864", "cp865", "cp866", "cp869", "cp874", "cp875", "cp932", "cp949", "cp950", "cp1006",

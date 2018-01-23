@@ -1,8 +1,10 @@
 # coding=utf-8
 
-from collectorFilter import ContentCallback
-from bs4 import BeautifulSoup
 import re
+
+from bs4 import BeautifulSoup
+
+from SFSpider.collectorFilter import ContentCallback
 
 
 class MainContentAnalyzer(ContentCallback):

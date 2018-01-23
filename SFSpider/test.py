@@ -1,10 +1,10 @@
 # coding=utf-8
-from collector import Collector
-from collectorFilter import *
-from MainContentAnalyzer import MainContentAnalyzer
 import os
 import time
-import threading
+
+from SFSpider.MainContentAnalyzer import MainContentAnalyzer
+from SFSpider.collector import Collector
+from SFSpider.collectorFilter import *
 
 '定义自己的Content回调器'
 
