@@ -1,4 +1,37 @@
 import struct
+import chardet
+import json
+
+
+def pack_data(type_, data):
+    """
+    封装数据包
+    :param type_: 数据包类型
+    :param data: 数据报数据
+    :return: json字节数组（utf-8编码）
+    """
+    if not isinstance(type_, str):
+        print("type_ must be an instance of str")
+    if not isinstance(data, dict):
+        print("data must be an instance of dict")
+    ret_data = dict()
+    ret_data["type"] = type_
+    ret_data["data"] = data
+    return json.dumps(ret_data).encode("utf-8")
+
+
+def unpack_data(data):
+    """
+    解压数据包
+    :param data:字节数组（utf-8编码）
+    :return: dict对象
+    """
+    try:
+        obj = json.loads(data.decode("utf-8"))
+        return obj
+    except Exception as e:
+        print(e)
+        return None
 
 
 def sf_bind(func, *args):
@@ -24,23 +57,6 @@ def sf_make_pack(data):
     return struct.pack("i", len(data)) + data
 
 
-codec_set = ["utf_8", "gb18030", "utf_8_sig", "gbk", "gb2312", "ascii", "big5", "cp424", "cp437", "cp500",
-             "cp850", "cp852", "cp855", "cp856", "cp857", "cp858", "cp860", "cp861", "cp862", "cp863",
-             "cp864", "cp865", "cp866", "cp869", "cp874", "cp875", "cp932", "cp949", "cp950", "cp1006",
-             "cp1026", "cp1125", "cp1140", "cp1250", "cp1251", "cp1252", "cp1253", "cp1254", "cp1255",
-             "cp1256", "cp1257", "cp1258", "cp65001", "euc_jp", "euc_jis_2004", "euc_jisx0213", "euc_kr",
-             "hz", "cp720", "cp737", "cp775", "iso2022_jp", "iso2022_jp_1", "iso2022_jp_2",
-             "iso2022_jp_2004", "iso2022_jp_3", "iso2022_jp_ext", "iso2022_kr", "latin_1", "iso8859_2",
-             "iso8859_3", "iso8859_4", "iso8859_5", "iso8859_6", "iso8859_7", "iso8859_8", "iso8859_9",
-             "iso8859_10", "iso8859_11", "iso8859_13", "iso8859_14", "iso8859_15", "iso8859_16", "johab",
-             "koi8_r", "koi8_t", "koi8_u", "kz1048", "mac_cyrillic", "mac_greek", "mac_iceland",
-             "mac_latin2", "mac_roman", "mac_turkish", "ptcp154", "shift_jis", "shift_jis_2004",
-             "shift_jisx0213", "utf_32", "utf_32_be", "utf_32_le", "utf_16", "utf_16_be", "utf_16_le",
-             "utf_7", "idna", "mbcs", "palmos", "punycode", "big5hkscs", "cp037", "cp273",
-             "raw_unicode_escape", "undefined", "unicode_escape", "unicode_internal", "base64_codec [1]",
-             "bz2_codec", "hex_codec", "quopri_codec", "uu_codec", "zlib_codec", "rot_13"]
-
-
 def decode_str(content):
     """
     网页内容解码器，包含python支持的所有编码，解码成功为止，不保证一定正确
@@ -49,12 +65,10 @@ def decode_str(content):
     """
     flag = False
     content_str = ""
-    for code_name in codec_set:
-        try:
-            content_str = content.decode(code_name)
-            flag = True
-            break
-        except Exception as e:
-            print(e)
-            continue
+    codec = chardet.detect(content)["encoding"]
+    try:
+        content_str = content.decode(codec)
+        flag = True
+    except Exception as e:
+        print(e)
     return content_str, flag
