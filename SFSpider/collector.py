@@ -24,14 +24,14 @@ class Collector:
                                       'Chrome/63.0.3239.84 Safari/537.36'
         self.__page_set = set()
         self.__max_deep = 1
-        self.__url_callback = set()
-        self.__text_callback = set()
-        self.__url_filter = UrlFilter()
-        self.__visited_url = set()
+        self._url_callback = set()
+        self._text_callback = set()
+        self._url_filter = UrlFilter()
+        self._visited_url = set()
 
         self.__thread_pool = ThreadPool()
 
-    def __get_page(self, url, curr_deep, extend=None):
+    def get_page(self, url, curr_deep, extend=None):
         """
         获取页面，关键函数，使用深度优先搜索
         此函数中会调用Url黑边名单过滤器、Url回调器、Content回调器
@@ -42,9 +42,9 @@ class Collector:
         """
         if curr_deep >= self.__max_deep:
             return
-        if url in self.__visited_url:
+        if url in self._visited_url:
             return
-        self.__visited_url.add(url)
+        self._visited_url.add(url)
         try:
             if not hasattr(self.__local, "http_client"):
                 self.__local.http_client = httplib2.Http('.cache')
@@ -53,24 +53,26 @@ class Collector:
             print("http error", e)
             return
         if response['status'] == '200' or response['status'] == '304':
-            content_str, flag = SFPublic.decode_str(content)
+            content_str, flag = SFPublic.sf_decode_str(content)
             if not flag:
                 print("decode error")
                 return
             bs = BeautifulSoup(content_str, 'html.parser')
-            for k in self.__text_callback:
+            for k in self._text_callback:
                 k.callback(url, content_str, bs.title.string, extend)
             link_list = bs.select('a')
             for i in link_list:
+                tmp_url = None
                 if i.has_attr('href'):
-                    url = i.attrs['href']
+                    tmp_url = i.attrs['href']
                 if i.has_attr('src'):
-                    url = i.attrs['src']
-                for k in self.__url_callback:
-                    k.callback(url, extend)
-                tmp_url = self.__url_filter.filter(url)
+                    tmp_url = i.attrs['src']
                 if tmp_url is not None:
-                    self.__thread_pool.add_task(self.__get_page, tmp_url, curr_deep + 1, extend)
+                    for k in self._url_callback:
+                        k.callback(url, extend)
+                    tmp_url = self._url_filter.filter(url)
+                if tmp_url is not None:
+                    self.__thread_pool.add_task(self.get_page, tmp_url, curr_deep + 1, extend)
         else:
             print('status error:', response)
             print(url)
@@ -89,9 +91,9 @@ class Collector:
         self.__thread_pool.set_work_thread_count(thread_count)
         if isinstance(begin_page, list):
             for page in begin_page:
-                self.__thread_pool.add_task(self.__get_page, page, 0, extend)
+                self.__thread_pool.add_task(self.get_page, page, 0, extend)
         elif isinstance(begin_page, str):
-            self.__thread_pool.add_task(self.__get_page, begin_page, 0, extend)
+            self.__thread_pool.add_task(self.get_page, begin_page, 0, extend)
         self.__thread_pool.start()
         if wait_exit:
             self.__thread_pool.exit_when_no_task()
@@ -107,9 +109,9 @@ class Collector:
         """
         if isinstance(page, list):
             for url in page:
-                self.__thread_pool.add_task(self.__get_page, url, start_deep, extend)
+                self.__thread_pool.add_task(self.get_page, url, start_deep, extend)
         else:
-            self.__thread_pool.add_task(self.__get_page, page, start_deep, extend)
+            self.__thread_pool.add_task(self.get_page, page, start_deep, extend)
 
     def set_url_filter(self, url_filter):
         """
@@ -120,7 +122,7 @@ class Collector:
         if not isinstance(url_filter, UrlFilter):
             print(url_filter, 'is not a UrlFilter instance')
             return
-        self.__url_filter = url_filter
+        self._url_filter = url_filter
 
     def add_url_callback(self, callback):
         """
@@ -131,7 +133,7 @@ class Collector:
         if not isinstance(callback, UrlCallBack):
             print(callback, 'is not a UrlCallBack instance')
             return
-        self.__url_callback.add(callback)
+        self._url_callback.add(callback)
 
     def add_content_callback(self, callback):
         """
@@ -142,7 +144,7 @@ class Collector:
         if not isinstance(callback, ContentCallback):
             print(callback, 'is not a ContentCallback instance')
             return
-        self.__text_callback.add(callback)
+        self._text_callback.add(callback)
 
     def max_deep(self):
         """
@@ -157,4 +159,4 @@ class Collector:
         清除历史记录
         Returns:
         """
-        self.__visited_url.clear()
+        self._visited_url.clear()

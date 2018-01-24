@@ -3,7 +3,7 @@ import chardet
 import json
 
 
-def pack_data(type_, data):
+def sf_pack_data(type_, data):
     """
     封装数据包
     :param type_: 数据包类型
@@ -17,10 +17,10 @@ def pack_data(type_, data):
     ret_data = dict()
     ret_data["type"] = type_
     ret_data["data"] = data
-    return json.dumps(ret_data).encode("utf-8")
+    return __sf_make_pack(json.dumps(ret_data).encode("utf-8"))
 
 
-def unpack_data(data):
+def sf_unpack_data(data):
     """
     解压数据包
     :param data:字节数组（utf-8编码）
@@ -48,7 +48,7 @@ def sf_bind(func, *args):
     return _func
 
 
-def sf_make_pack(data):
+def __sf_make_pack(data):
     """
     打包数据
     :param data: 数据
@@ -57,7 +57,7 @@ def sf_make_pack(data):
     return struct.pack("i", len(data)) + data
 
 
-def decode_str(content):
+def sf_decode_str(content):
     """
     网页内容解码器，包含python支持的所有编码，解码成功为止，不保证一定正确
     Args:

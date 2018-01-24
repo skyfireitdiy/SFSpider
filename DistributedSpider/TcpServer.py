@@ -13,13 +13,13 @@ class TcpServer(QtCore.QObject):
 
     new_connection_sgn = QtCore.pyqtSignal(QtNetwork.QTcpSocket)
     server_error_sgn = QtCore.pyqtSignal(int)
-    client_error_sgn = QtCore.pyqtSignal(QtNetwork.QTcpSocket,int)
-    data_coming_sgn = QtCore.pyqtSignal(QtNetwork.QTcpSocket,bytes)
+    client_error_sgn = QtCore.pyqtSignal(QtNetwork.QTcpSocket, int)
+    data_coming_sgn = QtCore.pyqtSignal(QtNetwork.QTcpSocket, bytes)
 
     def __init__(self):
         super().__init__()
         self.__server.newConnection.connect(self.__new_connection_slot)
-        self.__server.acceptError.connect(self.__server_error)
+        self.__server.acceptError.connect(self.__server_error_slot)
 
     def listen(self, host, port):
         """
@@ -28,7 +28,7 @@ class TcpServer(QtCore.QObject):
         :param port: 端口
         :return: 监听结果
         """
-        return self.__server.listen(QtNetwork.QHostAddress(host), port)
+        return self.__server.listen(host, port)
 
     def __ready_read_slot(self, sock):
         """
@@ -60,11 +60,11 @@ class TcpServer(QtCore.QObject):
         while self.__server.hasPendingConnections():
             new_conn = self.__server.nextPendingConnection()
             new_conn.readyRead.connect(SFPublic.sf_bind(self.__ready_read_slot, new_conn))
-            new_conn.error.connect(SFPublic.sf_bind(self.__client_error))
+            new_conn.error.connect(SFPublic.sf_bind(self.__client_error_slot))
             self.__clients[new_conn] = QtCore.QByteArray()
             self.new_connection_sgn.emit(new_conn)
 
-    def __server_error(self, err):
+    def __server_error_slot(self, err):
         """
         服务器出现异常（默认处理为打印异常信息）
         :param err: 异常类型
@@ -72,7 +72,7 @@ class TcpServer(QtCore.QObject):
         print(self.__server.errorString())
         self.server_error_sgn.emit(err)
 
-    def __client_error(self, sock, err):
+    def __client_error_slot(self, sock, err):
         """
         客户端socket异常（默认处理为打印异常信息，从连接列表中删除该socket）
         :param sock:socket
