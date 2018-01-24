@@ -4,7 +4,7 @@ import re
 
 from bs4 import BeautifulSoup
 
-from SFSpider.collectorFilter import ContentCallback
+from sFSpider.collectorFilter import ContentCallback
 
 
 class MainContentAnalyzer(ContentCallback):

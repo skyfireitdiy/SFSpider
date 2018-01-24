@@ -3,32 +3,31 @@
 import threading
 import httplib2
 from bs4 import BeautifulSoup
-from SFPublic.threadpool import ThreadPool
-from SFPublic import SFPublic
-from SFSpider.collectorFilter import ContentCallback
-from SFSpider.collectorFilter import UrlCallBack
-from SFSpider.collectorFilter import UrlFilter
+from sFPublic.threadpool import ThreadPool
+from sFPublic import SFPublic
+from sFSpider.collectorFilter import ContentCallback
+from sFSpider.collectorFilter import UrlCallBack
+from sFSpider.collectorFilter import UrlFilter
 
 """
 网页收集器（不支持js执行）
 """
 
 
-class Collector:
-
-    __local = threading.local()
+class Collector(object):
 
     def __init__(self):
-        self.__header = dict()
-        self.__header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+        print("init")
+        self._header = dict()
+        self._header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                                       'Chrome/63.0.3239.84 Safari/537.36'
+        self._local = threading.local()
+        self._max_deep = 1
         self.__page_set = set()
-        self.__max_deep = 1
         self._url_callback = set()
         self._text_callback = set()
         self._url_filter = UrlFilter()
         self._visited_url = set()
-
         self.__thread_pool = ThreadPool()
 
     def get_page(self, url, curr_deep, extend=None):
@@ -40,15 +39,15 @@ class Collector:
             curr_deep: 当前深度
             extend: 附加数据
         """
-        if curr_deep >= self.__max_deep:
+        if curr_deep >= self._max_deep:
             return
         if url in self._visited_url:
             return
         self._visited_url.add(url)
         try:
-            if not hasattr(self.__local, "http_client"):
-                self.__local.http_client = httplib2.Http('.cache')
-            response, content = self.__local.http_client.request(url, 'GET', headers=self.__header)
+            if not hasattr(self._local, "http_client"):
+                self._local.http_client = httplib2.Http('.cache')
+            response, content = self._local.http_client.request(url, 'GET', headers=self._header)
         except Exception as e:
             print("http error", e)
             return
@@ -69,8 +68,8 @@ class Collector:
                     tmp_url = i.attrs['src']
                 if tmp_url is not None:
                     for k in self._url_callback:
-                        k.callback(url, extend)
-                    tmp_url = self._url_filter.filter(url)
+                        k.callback(tmp_url, extend)
+                    tmp_url = self._url_filter.filter(tmp_url)
                 if tmp_url is not None:
                     self.__thread_pool.add_task(self.get_page, tmp_url, curr_deep + 1, extend)
         else:
@@ -87,7 +86,7 @@ class Collector:
             wait_exit: 是否等待所有结果退出
             extend: 附加数据
         """
-        self.__max_deep = deep
+        self._max_deep = deep
         self.__thread_pool.set_work_thread_count(thread_count)
         if isinstance(begin_page, list):
             for page in begin_page:
@@ -152,7 +151,7 @@ class Collector:
         Returns:
             返回最大采集深度
         """
-        return self.__max_deep
+        return self._max_deep
 
     def clean_history(self):
         """

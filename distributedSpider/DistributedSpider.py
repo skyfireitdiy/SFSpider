@@ -1,24 +1,31 @@
-from DistributedSpider.TcpServer import TcpServer
-from DistributedSpider.TcpClient import TcpClient
-from SFSpider import collector
-from SFSpider.collectorFilter import *
+from sFPublic.TcpNetWork import *
+from sFPublic import SFPublic
+from sFSpider import collector
 from PyQt5 import QtNetwork
 import httplib2
 from bs4 import BeautifulSoup
-from SFPublic import SFPublic
 import sys
+from PyQt5 import QtCore
 
 
-class DistributedSpiderServer(collector.Collector):
-    __server = TcpServer()
-    __clients = dict()
-    __server_task_count = 0
+class MsgSender(QtCore.QObject):
+    client_send_sgn = QtCore.pyqtSignal(bytes)
+    server_send_sgn = QtCore.pyqtSignal(QtNetwork.QTcpSocket, bytes)
 
     def __init__(self):
         super().__init__()
-        self.__server.data_coming_sgn.connect(self._server_msg_coming_slot)
-        self.__server.new_connection_sgn.connect(self.__new_connection_slot)
-        self.__server.client_error_sgn.connect(self.__sock_error_slot)
+
+
+class DistributedSpiderServer(collector.Collector):
+    _server = TcpServer()
+    _clients = dict()
+    _server_task_count = 0
+
+    def __init__(self):
+        super().__init__()
+        self._server.data_coming_sgn.connect(self._server_msg_coming_slot)
+        self._server.new_connection_sgn.connect(self.__new_connection_slot)
+        self._server.client_error_sgn.connect(self.__sock_error_slot)
 
     def _server_msg_coming_slot(self, sock, data):
         obj = SFPublic.sf_unpack_data(data)
@@ -27,6 +34,7 @@ class DistributedSpiderServer(collector.Collector):
         type_ = obj["type"]
         data_ = obj["data"]
         if type_ == "url_list":
+            print("from client url_list")
             for url in data_["url_list"]:
                 for k in self._url_callback:
                     k.callback(url, data_["extend"])
@@ -35,20 +43,22 @@ class DistributedSpiderServer(collector.Collector):
                     self.add_task(tmp_url, data_["curr_deep"], data_["extend"])
             return
         if type_ == "content":
-            for i in range(len(self.__clients[sock]["task"])):
-                if self.__clients[sock]["task"][i]["page"] == data_["url"]:
-                    del self.__clients[sock]["task"][i]
+            print("from client content")
+            for i in range(len(self._clients[sock]["task"])):
+                if self._clients[sock]["task"][i]["page"] == data_["url"]:
+                    del self._clients[sock]["task"][i]
                     break
             for con_cb in self._text_callback:
                 con_cb.callback(data_["url"], data_["content"], data_["title"], data_["extend"])
 
     def __new_connection_slot(self, sock):
-        self.__clients[sock] = dict()
-        self.__clients[sock]["task"] = list()
+        print("new connection")
+        self._clients[sock] = dict()
+        self._clients[sock]["task"] = list()
 
     def __sock_error_slot(self, sock, err):
-        task_list = self.__clients[sock]["task"]
-        self.__clients.pop(sock)
+        task_list = self._clients[sock]["task"]
+        self._clients.pop(sock)
         print(sock.errorString(), err)
         for task in task_list:
             self.add_task(task["page"], task["start_deep"], task["extend"])
@@ -67,9 +77,9 @@ class DistributedSpiderServer(collector.Collector):
         """
         if local_host is None:
             local_host = QtNetwork.QHostAddress.Any
-        if not TcpServer.listen(local_host, local_port):
+        if not self._server.listen(local_host, local_port):
             print("Listen on", local_host, ":", local_port, " error")
-        super().start(begin_page, deep, thread_count, wait_exit, extend)
+        self.start(begin_page, deep, thread_count, wait_exit, extend)
 
     def get_min_task_client(self):
         """
@@ -77,8 +87,8 @@ class DistributedSpiderServer(collector.Collector):
         :return:最小任务量sock，最小值
         """
         ret_sock = None
-        task_num = sys.maxsize()
-        for sock, task in self.__clients.items():
+        task_num = sys.maxsize
+        for sock, task in self._clients.items():
             if task_num > len(task):
                 ret_sock = sock
                 task_num = len(task)
@@ -89,8 +99,8 @@ class DistributedSpiderServer(collector.Collector):
         task["page"] = url
         task["start_deep"] = curr_deep
         task["extend"] = extend
-        self.__clients[sock]["task"].append(task)
-        self.__server.send_data(sock, SFPublic.sf_pack_data("task", task))
+        self._clients[sock]["task"].append(task)
+        self._local.msg_sender.server_send_sgn.emit(sock, SFPublic.sf_pack_data("task", task))
 
     def get_page(self, url, curr_deep, extend=None):
         """
@@ -101,19 +111,25 @@ class DistributedSpiderServer(collector.Collector):
             curr_deep: 当前深度
             extend: 附加数据
         """
-        if curr_deep >= self.__max_deep:
+        if not hasattr(self._local, "msg_sender"):
+            self._local.msg_sender = MsgSender()
+            self._local.msg_sender.server_send_sgn.connect(self._server.send_data)
+        if curr_deep >= self._max_deep:
             return
         if url in self._visited_url:
             return
         sock, task_count = self.get_min_task_client()
-        if sock is None or task_count > self.__server_task_count:
+        if sock is None or task_count > self._server_task_count:
+            self._server_task_count += 1
             super().get_page(url, curr_deep, extend)
+            self._server_task_count -= 1
         else:
             self.distribute_task(sock, url, curr_deep, extend)
+            print("distribute_task")
 
 
 class DistributedSpiderClient(DistributedSpiderServer):
-    __client = TcpClient
+    __client = TcpClient()
 
     def __init__(self):
         super().__init__()
@@ -142,8 +158,7 @@ class DistributedSpiderClient(DistributedSpiderServer):
             self.__client.send_data(SFPublic.sf_pack_data("content", data_))
             return
 
-    def start_client(self, local_host, local_port, server_host, server_port, begin_page, deep=1, thread_count=4,
-                     wait_exit=True, extend=None):
+    def start_client(self, local_host, local_port, server_host, server_port, deep=1, thread_count=4):
         """
         开始函数，用于驱动各模块的运行
         Args:
@@ -151,20 +166,22 @@ class DistributedSpiderClient(DistributedSpiderServer):
             local_port: 本地监听端口
             server_host: 服务器ip
             server_port: 服务器端口
-            begin_page: 起始页(或者起始页列表)
             deep: 递归深度
             thread_count: 线程数量
-            wait_exit: 是否等待所有结果退出
-            extend: 附加数据
         """
-        pass
+        if local_host is None:
+            local_host = QtNetwork.QHostAddress.Any
+        if not self._server.listen(local_host, local_port):
+            print("Listen on", local_host, ":", local_port, " error")
+        self.start(None, deep, thread_count, False, None)
+        self.__client.connect_to_host(server_host, server_port)
 
     def report_urls(self, url_list, curr_deep, extend):
         data = dict()
         data["url_list"] = url_list
         data["curr_deep"] = curr_deep
         data["extend"] = extend
-        self.__client.send_data(SFPublic.sf_pack_data("url_list", data))
+        self._local.msg_sender.client_send_sgn.emit(SFPublic.sf_pack_data("url_list", data))
 
     def report_content(self, url, content, title, extend):
         data = dict()
@@ -172,19 +189,25 @@ class DistributedSpiderClient(DistributedSpiderServer):
         data["content"] = content
         data["title"] = title
         data["extend"] = extend
-        self.__client.send_data(SFPublic.sf_pack_data("content", data))
+        self._local.msg_sender.client_send_sgn.emit(SFPublic.sf_pack_data("content", data))
 
     def get_page(self, url, curr_deep, extend=None):
-        if curr_deep >= self.__max_deep:
+        if not hasattr(self._local, "msg_sender"):
+            self._local.msg_sender = MsgSender()
+            self._local.msg_sender.server_send_sgn.connect(self._server.send_data)
+            self._local.msg_sender.client_send_sgn.connect(self.__client.send_data)
+        if curr_deep >= self._max_deep:
             return
         if url in self._visited_url:
             return
         sock, task_count = self.get_min_task_client()
-        if sock is None or task_count > self.__server_task_count:
+        print("task count:", task_count, self._server_task_count)
+        if sock is None or task_count > self._server_task_count:
             try:
-                if not hasattr(self.__local, "http_client"):
-                    self.__local.http_client = httplib2.Http('.cache')
-                response, content = self.__local.http_client.request(url, 'GET', headers=self.__header)
+                self._server_task_count += 1
+                if not hasattr(self._local, "http_client"):
+                    self._local.http_client = httplib2.Http('.cache')
+                response, content = self._local.http_client.request(url, 'GET', headers=self._header)
             except Exception as e:
                 print("http error", e)
                 return
@@ -210,5 +233,6 @@ class DistributedSpiderClient(DistributedSpiderServer):
             else:
                 print('status error:', response)
                 print(url)
+            self._server_task_count -= 1
         else:
             self.distribute_task(sock, url, curr_deep, extend)

@@ -17,7 +17,7 @@ def sf_pack_data(type_, data):
     ret_data = dict()
     ret_data["type"] = type_
     ret_data["data"] = data
-    return __sf_make_pack(json.dumps(ret_data).encode("utf-8"))
+    return json.dumps(ret_data).encode("utf-8")
 
 
 def sf_unpack_data(data):
@@ -48,7 +48,7 @@ def sf_bind(func, *args):
     return _func
 
 
-def __sf_make_pack(data):
+def sf_make_pack(data):
     """
     打包数据
     :param data: 数据

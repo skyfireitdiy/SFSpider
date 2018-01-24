@@ -2,9 +2,9 @@
 import os
 import time
 
-from SFSpider.MainContentAnalyzer import MainContentAnalyzer
-from SFSpider.collector import Collector
-from SFSpider.collectorFilter import *
+from sFSpider.MainContentAnalyzer import MainContentAnalyzer
+from sFSpider.collector import Collector
+from sFSpider.collectorFilter import *
 
 '定义自己的Content回调器'
 
