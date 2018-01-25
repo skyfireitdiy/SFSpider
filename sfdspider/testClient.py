@@ -1,4 +1,4 @@
-from distributedSpider.DistributedSpider import DistributedSpiderClient
+from sfdspider.distributedspider import DistributedSpiderClient
 from PyQt5 import QtNetwork,QtCore
 import sys
 

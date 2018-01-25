@@ -3,11 +3,11 @@
 import threading
 import httplib2
 from bs4 import BeautifulSoup
-from sFPublic.threadpool import ThreadPool
-from sFPublic import SFPublic
-from sFSpider.collectorFilter import ContentCallback
-from sFSpider.collectorFilter import UrlCallBack
-from sFSpider.collectorFilter import UrlFilter
+from sfpublic.threadpool import ThreadPool
+from sfpublic import toolfunc
+from sfspider.collectorfilter import ContentCallback
+from sfspider.collectorfilter import UrlCallBack
+from sfspider.collectorfilter import UrlFilter
 
 """
 网页收集器（不支持js执行）
@@ -52,7 +52,7 @@ class Collector(object):
             print("http error", e)
             return
         if response['status'] == '200' or response['status'] == '304':
-            content_str, flag = SFPublic.sf_decode_str(content)
+            content_str, flag = toolfunc.sf_decode_str(content)
             if not flag:
                 print("decode error")
                 return

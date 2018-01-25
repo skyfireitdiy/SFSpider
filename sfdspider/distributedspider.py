@@ -1,6 +1,6 @@
-from sFPublic.TcpNetWork import *
-from sFPublic import SFPublic
-from sFSpider import collector
+from sfpublic.tcpnetwork import *
+from sfpublic import toolfunc
+from sfspider import collector
 from PyQt5 import QtNetwork
 import httplib2
 from bs4 import BeautifulSoup
@@ -28,7 +28,7 @@ class DistributedSpiderServer(collector.Collector):
         self._server.client_error_sgn.connect(self.__sock_error_slot)
 
     def _server_msg_coming_slot(self, sock, data):
-        obj = SFPublic.sf_unpack_data(data)
+        obj = toolfunc.sf_unpack_data(data)
         if obj is None:
             return
         type_ = obj["type"]
@@ -100,7 +100,7 @@ class DistributedSpiderServer(collector.Collector):
         task["start_deep"] = curr_deep
         task["extend"] = extend
         self._clients[sock]["task"].append(task)
-        self._local.msg_sender.server_send_sgn.emit(sock, SFPublic.sf_pack_data("task", task))
+        self._local.msg_sender.server_send_sgn.emit(sock, toolfunc.sf_pack_data("task", task))
 
     def get_page(self, url, curr_deep, extend=None):
         """
@@ -136,7 +136,7 @@ class DistributedSpiderClient(DistributedSpiderServer):
         self.__client.data_coming_sgn.connect(self.__client_msg_coming_slot)
 
     def __client_msg_coming_slot(self, data):
-        obj = SFPublic.sf_unpack_data(data)
+        obj = toolfunc.sf_unpack_data(data)
         if obj is None:
             return
         type_ = obj["type"]
@@ -146,16 +146,16 @@ class DistributedSpiderClient(DistributedSpiderServer):
             return
 
     def _server_msg_coming_slot(self, sock, data):
-        obj = SFPublic.sf_unpack_data(data)
+        obj = toolfunc.sf_unpack_data(data)
         if obj is None:
             return
         type_ = obj["type"]
         data_ = obj["data"]
         if type_ == "url_list":
-            self.__client.send_data(SFPublic.sf_pack_data("url_list", data_))
+            self.__client.send_data(toolfunc.sf_pack_data("url_list", data_))
             return
         if type_ == "content":
-            self.__client.send_data(SFPublic.sf_pack_data("content", data_))
+            self.__client.send_data(toolfunc.sf_pack_data("content", data_))
             return
 
     def start_client(self, local_host, local_port, server_host, server_port, deep=1, thread_count=4):
@@ -181,7 +181,7 @@ class DistributedSpiderClient(DistributedSpiderServer):
         data["url_list"] = url_list
         data["curr_deep"] = curr_deep
         data["extend"] = extend
-        self._local.msg_sender.client_send_sgn.emit(SFPublic.sf_pack_data("url_list", data))
+        self._local.msg_sender.client_send_sgn.emit(toolfunc.sf_pack_data("url_list", data))
 
     def report_content(self, url, content, title, extend):
         data = dict()
@@ -189,7 +189,8 @@ class DistributedSpiderClient(DistributedSpiderServer):
         data["content"] = content
         data["title"] = title
         data["extend"] = extend
-        self._local.msg_sender.client_send_sgn.emit(SFPublic.sf_pack_data("content", data))
+        print("Report", title)
+        self._local.msg_sender.client_send_sgn.emit(toolfunc.sf_pack_data("content", data))
 
     def get_page(self, url, curr_deep, extend=None):
         if not hasattr(self._local, "msg_sender"):
@@ -201,8 +202,8 @@ class DistributedSpiderClient(DistributedSpiderServer):
         if url in self._visited_url:
             return
         sock, task_count = self.get_min_task_client()
-        print("task count:", task_count, self._server_task_count)
         if sock is None or task_count > self._server_task_count:
+            self._visited_url.add(url)
             try:
                 self._server_task_count += 1
                 if not hasattr(self._local, "http_client"):
@@ -210,14 +211,16 @@ class DistributedSpiderClient(DistributedSpiderServer):
                 response, content = self._local.http_client.request(url, 'GET', headers=self._header)
             except Exception as e:
                 print("http error", e)
+                self.report_content(url, "", "", extend)
                 return
-            self._visited_url.add(url)
             if response['status'] == '200' or response['status'] == '304':
-                content_str, flag = SFPublic.sf_decode_str(content)
+                content_str, flag = toolfunc.sf_decode_str(content)
                 if not flag:
                     print("decode error")
+                    self.report_content(url, "", "", extend)
                     return
                 bs = BeautifulSoup(content_str, 'html.parser')
+                print("Will report", bs.title.string)
                 self.report_content(url, content_str, bs.title.string, extend)
                 link_list = bs.select('a')
                 url_list = set()
@@ -232,6 +235,7 @@ class DistributedSpiderClient(DistributedSpiderServer):
                 self.report_urls(url_list, curr_deep + 1, extend)
             else:
                 print('status error:', response)
+                self.report_content(url, "", "", extend)
                 print(url)
             self._server_task_count -= 1
         else:

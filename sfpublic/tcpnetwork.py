@@ -3,7 +3,7 @@
 """
 
 from PyQt5 import QtCore, QtNetwork
-from sFPublic import SFPublic
+from sfpublic import toolfunc
 import struct
 
 
@@ -59,8 +59,8 @@ class TcpServer(QtCore.QObject):
         """
         while self.__server.hasPendingConnections():
             new_conn = self.__server.nextPendingConnection()
-            new_conn.readyRead.connect(SFPublic.sf_bind(self.__ready_read_slot, new_conn))
-            new_conn.error.connect(SFPublic.sf_bind(self.__client_error_slot, new_conn))
+            new_conn.readyRead.connect(toolfunc.sf_bind(self.__ready_read_slot, new_conn))
+            new_conn.error.connect(toolfunc.sf_bind(self.__client_error_slot, new_conn))
             self.__clients[new_conn] = QtCore.QByteArray()
             self.new_connection_sgn.emit(new_conn)
 
@@ -91,8 +91,7 @@ class TcpServer(QtCore.QObject):
         :param sock: socket
         :param data:数据
         """
-        print("Send Data")
-        sock.write(SFPublic.sf_make_pack(data))
+        sock.write(toolfunc.sf_make_pack(data))
         sock.waitForBytesWritten()
 
     def get_server(self):
@@ -139,7 +138,6 @@ class TcpClient(QtCore.QObject):
         :param host:server IP
         :param port:server 端口
         """
-        print("connect to", host.toString(), port)
         self.__client.connectToHost(QtNetwork.QHostAddress(host), port)
 
     def __connect_succeed(self):
@@ -176,7 +174,6 @@ class TcpClient(QtCore.QObject):
         数据包到来回调函数
         :param data: 数据
         """
-        print(data)
         self.data_coming_sgn.emit(data)
 
     def send_data(self, data):
@@ -184,7 +181,7 @@ class TcpClient(QtCore.QObject):
         发送数据
         :param data:数据
         """
-        self.__client.write(SFPublic.sf_make_pack(data))
+        self.__client.write(toolfunc.sf_make_pack(data))
         self.__client.waitForBytesWritten()
 
     def close(self):
