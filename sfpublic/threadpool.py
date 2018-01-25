@@ -9,7 +9,7 @@ class ThreadPool:
     线程池类
     """
 
-    class __RunTaskThread(threading.Thread):
+    class _RunTaskThread(threading.Thread):
         """
         线程池的任务执行类
         """
@@ -47,10 +47,10 @@ class ThreadPool:
         self.task_list = queue.Queue()
         self.condition = threading.Condition()
         self.__thread_count = 1
-        self.__started = False
+        self._started = False
         self.exit_flag = False
         self.exit_when_no_task_flag = False
-        self.__thread_list = list()
+        self._thread_list = list()
 
     def set_work_thread_count(self, count):
         """
@@ -59,7 +59,7 @@ class ThreadPool:
             count:线程数量
         此方法必须在start前调用，否则不会生效
         """
-        if self.__started:
+        if self._started:
             print("Thread pool has started, can't change thread count")
             return
         if count <= 0:
@@ -70,7 +70,7 @@ class ThreadPool:
             count = 64
         self.__thread_count = count
 
-    def __notify_all_thread(self):
+    def _notify_all_thread(self):
         """
         唤醒所有在等待任务的线程，开始调度
         """
@@ -90,7 +90,7 @@ class ThreadPool:
         pool.add_task(func, 10, 5)
         """
         self.task_list.put(task)
-        self.__notify_all_thread()
+        self._notify_all_thread()
 
     def exit_when_no_task(self, flag=True):
         """
@@ -99,14 +99,14 @@ class ThreadPool:
             flag: 标志值
         """
         self.exit_when_no_task_flag = flag
-        self.__notify_all_thread()
+        self._notify_all_thread()
 
     def exit(self):
         """
         退出所有线程
         """
         self.exit_flag = True
-        self.__notify_all_thread()
+        self._notify_all_thread()
 
     def wait_exit(self, timeout=None):
         """
@@ -114,18 +114,18 @@ class ThreadPool:
         Args:
             timeout:每个线程等待的时间，如果为None说明为一直等待
         """
-        for th in self.__thread_list:
+        for th in self._thread_list:
             th.join(timeout)
-        self.__started = False
+        self._started = False
 
     def start(self):
         """
         启动线程池，开始调度
         """
         for i in range(self.__thread_count):
-            task_thread = self.__RunTaskThread(self)
+            task_thread = self._RunTaskThread(self)
             task_thread.setDaemon(True)
             task_thread.start()
-            self.__thread_list.append(task_thread)
-        self.__notify_all_thread()
-        self.__started = True
+            self._thread_list.append(task_thread)
+        self._notify_all_thread()
+        self._started = True

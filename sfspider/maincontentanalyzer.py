@@ -14,7 +14,7 @@ class MainContentAnalyzer(ContentCallback):
 
     def __init__(self):
         ContentCallback.__init__(self)
-        self.__min_block_line_count = 1
+        self._min_block_line_count = 1
 
     def set_min_block_line_count(self, count):
         """
@@ -22,9 +22,9 @@ class MainContentAnalyzer(ContentCallback):
         Args:
             count:最小块行数
         """
-        self.__min_block_line_count = count
+        self._min_block_line_count = count
 
-    def solve_func(self, url, content, title):
+    def solve_func(self, url, content, title, extend):
         """
         处理流程，该流程将正文抽取出来，替换原来的content
         Args:
@@ -32,14 +32,14 @@ class MainContentAnalyzer(ContentCallback):
             content:要处理的内容
             title:标题
         """
-        content = self.__del_style_and_script(content)
-        content = self.__del_html_mark(content)
+        content = self._del_style_and_script(content)
+        content = self._del_html_mark(content)
         lines = content.splitlines(False)
-        block_data = self.__get_block_data(lines)
-        self.set_new_content(self.__get_main_content(block_data, lines))
+        block_data = self._get_block_data(lines)
+        self.set_new_content(self._get_main_content(block_data, lines))
 
     @staticmethod
-    def __replace_callback(m):
+    def _replace_callback(m):
         """
         正则表达式匹配回调函数，将匹配到的行替换为换行符
         Args:
@@ -55,7 +55,7 @@ class MainContentAnalyzer(ContentCallback):
         return str('\n').center(line_count, '\n')
 
     @staticmethod
-    def __del_html_mark(content):
+    def _del_html_mark(content):
         """
         清除HTML标记
         Args:
@@ -66,7 +66,7 @@ class MainContentAnalyzer(ContentCallback):
         bs = BeautifulSoup(content, 'html.parser')
         return bs.text
 
-    def __get_block_data(self, lines):
+    def _get_block_data(self, lines):
         """
         计算block数据，使用类似卷积的方法，数据中每个元素的数值为 (前N行字数)+(当前行字数)+(后N行字数)
         Args:
@@ -77,14 +77,14 @@ class MainContentAnalyzer(ContentCallback):
         blocks_data = list()
         for i in range(len(lines)):
             word_count = 0
-            for t in range(i - self.__min_block_line_count, i + self.__min_block_line_count):
+            for t in range(i - self._min_block_line_count, i + self._min_block_line_count):
                 if 0 < t < len(lines):
                     word_count += len(lines[t])
             blocks_data.append(word_count)
         return blocks_data
 
     @staticmethod
-    def __get_main_content(blocks_data, lines):
+    def _get_main_content(blocks_data, lines):
         """
         抽取正文
         Args:
@@ -108,7 +108,7 @@ class MainContentAnalyzer(ContentCallback):
                 break
         return '\n'.join(lines[min_line_num: max_line_num])
 
-    def __del_style_and_script(self, content):
+    def _del_style_and_script(self, content):
         """
         删除网页script内容和style内容
         Args:
@@ -117,4 +117,4 @@ class MainContentAnalyzer(ContentCallback):
             取出script和style后的内容
         """
         re_script = re.compile('(?P<script><script.*?</script>)|(?P<style><style.*?</style>)', flags=re.S | re.I)
-        return re_script.sub(self.__replace_callback, content)
+        return re_script.sub(self._replace_callback, content)

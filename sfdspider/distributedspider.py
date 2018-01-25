@@ -9,6 +9,9 @@ from PyQt5 import QtCore
 
 
 class MsgSender(QtCore.QObject):
+    """
+    发送信息辅助类，主要为了在线程池以及tcp socket间传递消息
+    """
     client_send_sgn = QtCore.pyqtSignal(bytes)
     server_send_sgn = QtCore.pyqtSignal(QtNetwork.QTcpSocket, bytes)
 
@@ -17,6 +20,9 @@ class MsgSender(QtCore.QObject):
 
 
 class DistributedSpiderServer(collector.Collector):
+    """
+    分布式爬虫主节点
+    """
     _server = TcpServer()
     _clients = dict()
     _server_task_count = 0
@@ -24,17 +30,21 @@ class DistributedSpiderServer(collector.Collector):
     def __init__(self):
         super().__init__()
         self._server.data_coming_sgn.connect(self._server_msg_coming_slot)
-        self._server.new_connection_sgn.connect(self.__new_connection_slot)
-        self._server.client_error_sgn.connect(self.__sock_error_slot)
+        self._server.new_connection_sgn.connect(self._new_connection_slot)
+        self._server.client_error_sgn.connect(self._sock_error_slot)
 
     def _server_msg_coming_slot(self, sock, data):
+        """
+        服务器消息到来处理函数
+        :param sock: 来源Socket
+        :param data: 数据
+        """
         obj = toolfunc.sf_unpack_data(data)
         if obj is None:
             return
         type_ = obj["type"]
         data_ = obj["data"]
         if type_ == "url_list":
-            print("from client url_list")
             for url in data_["url_list"]:
                 for k in self._url_callback:
                     k.callback(url, data_["extend"])
@@ -43,7 +53,6 @@ class DistributedSpiderServer(collector.Collector):
                     self.add_task(tmp_url, data_["curr_deep"], data_["extend"])
             return
         if type_ == "content":
-            print("from client content")
             for i in range(len(self._clients[sock]["task"])):
                 if self._clients[sock]["task"][i]["page"] == data_["url"]:
                     del self._clients[sock]["task"][i]
@@ -51,12 +60,21 @@ class DistributedSpiderServer(collector.Collector):
             for con_cb in self._text_callback:
                 con_cb.callback(data_["url"], data_["content"], data_["title"], data_["extend"])
 
-    def __new_connection_slot(self, sock):
+    def _new_connection_slot(self, sock):
+        """
+        新连接到来处理（创建数据结构）
+        :param sock: 新连接Socket
+        """
         print("new connection")
         self._clients[sock] = dict()
         self._clients[sock]["task"] = list()
 
-    def __sock_error_slot(self, sock, err):
+    def _sock_error_slot(self, sock, err):
+        """
+        Socket异常处理
+        :param sock: 出现异常的Socket
+        :param err: 错误码
+        """
         task_list = self._clients[sock]["task"]
         self._clients.pop(sock)
         print(sock.errorString(), err)
@@ -89,12 +107,19 @@ class DistributedSpiderServer(collector.Collector):
         ret_sock = None
         task_num = sys.maxsize
         for sock, task in self._clients.items():
-            if task_num > len(task):
+            if task_num > len(task["task"]):
                 ret_sock = sock
-                task_num = len(task)
+                task_num = len(task["task"])
         return ret_sock, task_num
 
     def distribute_task(self, sock, url, curr_deep, extend):
+        """
+        分发任务
+        :param sock: 目标Socket
+        :param url: 任务url
+        :param curr_deep: 当前深度
+        :param extend: 附加数据
+        """
         task = dict()
         task["page"] = url
         task["start_deep"] = curr_deep
@@ -125,17 +150,23 @@ class DistributedSpiderServer(collector.Collector):
             self._server_task_count -= 1
         else:
             self.distribute_task(sock, url, curr_deep, extend)
-            print("distribute_task")
 
 
 class DistributedSpiderClient(DistributedSpiderServer):
+    """
+    分布式爬虫从节点
+    """
     __client = TcpClient()
 
     def __init__(self):
         super().__init__()
-        self.__client.data_coming_sgn.connect(self.__client_msg_coming_slot)
+        self.__client.data_coming_sgn.connect(self._client_msg_coming_slot)
 
-    def __client_msg_coming_slot(self, data):
+    def _client_msg_coming_slot(self, data):
+        """
+        客服端消息到来响应
+        :param data: 数据
+        """
         obj = toolfunc.sf_unpack_data(data)
         if obj is None:
             return
@@ -146,6 +177,11 @@ class DistributedSpiderClient(DistributedSpiderServer):
             return
 
     def _server_msg_coming_slot(self, sock, data):
+        """
+        客户端服务器消息到来响应
+        :param sock: Socket
+        :param data: 数据
+        """
         obj = toolfunc.sf_unpack_data(data)
         if obj is None:
             return
@@ -176,23 +212,43 @@ class DistributedSpiderClient(DistributedSpiderServer):
         self.start(None, deep, thread_count, False, None)
         self.__client.connect_to_host(server_host, server_port)
 
-    def report_urls(self, url_list, curr_deep, extend):
+    def _report_urls(self, url_list, curr_deep, extend):
+        """
+        向上级节点汇报url列表
+        :param url_list: url列表
+        :param curr_deep: 深度
+        :param extend: 附加数据
+        """
         data = dict()
         data["url_list"] = url_list
         data["curr_deep"] = curr_deep
         data["extend"] = extend
         self._local.msg_sender.client_send_sgn.emit(toolfunc.sf_pack_data("url_list", data))
 
-    def report_content(self, url, content, title, extend):
+    def _report_content(self, url, content, title, extend):
+        """
+        向上级节点汇报内容
+        :param url: url日志
+        :param content: 内容
+        :param title: 标题
+        :param extend: 附加数据
+        """
         data = dict()
         data["url"] = url
         data["content"] = content
         data["title"] = title
         data["extend"] = extend
-        print("Report", title)
         self._local.msg_sender.client_send_sgn.emit(toolfunc.sf_pack_data("content", data))
 
     def get_page(self, url, curr_deep, extend=None):
+        """
+        获取页面，关键函数，使用深度优先搜索
+        此函数中会调用Url黑边名单过滤器、Url回调器、Content回调器
+        Args:
+            url: 要获取的url
+            curr_deep: 当前深度
+            extend: 附加数据
+        """
         if not hasattr(self._local, "msg_sender"):
             self._local.msg_sender = MsgSender()
             self._local.msg_sender.server_send_sgn.connect(self._server.send_data)
@@ -211,17 +267,16 @@ class DistributedSpiderClient(DistributedSpiderServer):
                 response, content = self._local.http_client.request(url, 'GET', headers=self._header)
             except Exception as e:
                 print("http error", e)
-                self.report_content(url, "", "", extend)
+                self._report_content(url, "", "", extend)
                 return
             if response['status'] == '200' or response['status'] == '304':
                 content_str, flag = toolfunc.sf_decode_str(content)
                 if not flag:
                     print("decode error")
-                    self.report_content(url, "", "", extend)
+                    self._report_content(url, "", "", extend)
                     return
                 bs = BeautifulSoup(content_str, 'html.parser')
-                print("Will report", bs.title.string)
-                self.report_content(url, content_str, bs.title.string, extend)
+                self._report_content(url, content_str, bs.title.string, extend)
                 link_list = bs.select('a')
                 url_list = set()
                 for i in link_list:
@@ -232,10 +287,10 @@ class DistributedSpiderClient(DistributedSpiderServer):
                         tmp_url = i.attrs['src']
                     if tmp_url is not None:
                         url_list.add(tmp_url)
-                self.report_urls(url_list, curr_deep + 1, extend)
+                self._report_urls(list(url_list), curr_deep + 1, extend)
             else:
                 print('status error:', response)
-                self.report_content(url, "", "", extend)
+                self._report_content(url, "", "", extend)
                 print(url)
             self._server_task_count -= 1
         else:

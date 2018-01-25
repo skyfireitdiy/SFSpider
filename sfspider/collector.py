@@ -23,12 +23,12 @@ class Collector(object):
                                       'Chrome/63.0.3239.84 Safari/537.36'
         self._local = threading.local()
         self._max_deep = 1
-        self.__page_set = set()
+        self._page_set = set()
         self._url_callback = set()
         self._text_callback = set()
         self._url_filter = UrlFilter()
         self._visited_url = set()
-        self.__thread_pool = ThreadPool()
+        self._thread_pool = ThreadPool()
 
     def get_page(self, url, curr_deep, extend=None):
         """
@@ -71,7 +71,7 @@ class Collector(object):
                         k.callback(tmp_url, extend)
                     tmp_url = self._url_filter.filter(tmp_url)
                 if tmp_url is not None:
-                    self.__thread_pool.add_task(self.get_page, tmp_url, curr_deep + 1, extend)
+                    self._thread_pool.add_task(self.get_page, tmp_url, curr_deep + 1, extend)
         else:
             print('status error:', response)
             print(url)
@@ -87,16 +87,16 @@ class Collector(object):
             extend: 附加数据
         """
         self._max_deep = deep
-        self.__thread_pool.set_work_thread_count(thread_count)
+        self._thread_pool.set_work_thread_count(thread_count)
         if isinstance(begin_page, list):
             for page in begin_page:
-                self.__thread_pool.add_task(self.get_page, page, 0, extend)
+                self._thread_pool.add_task(self.get_page, page, 0, extend)
         elif isinstance(begin_page, str):
-            self.__thread_pool.add_task(self.get_page, begin_page, 0, extend)
-        self.__thread_pool.start()
+            self._thread_pool.add_task(self.get_page, begin_page, 0, extend)
+        self._thread_pool.start()
         if wait_exit:
-            self.__thread_pool.exit_when_no_task()
-            self.__thread_pool.wait_exit()
+            self._thread_pool.exit_when_no_task()
+            self._thread_pool.wait_exit()
 
     def add_task(self, page, start_deep=0, extend=None):
         """
@@ -108,9 +108,9 @@ class Collector(object):
         """
         if isinstance(page, list):
             for url in page:
-                self.__thread_pool.add_task(self.get_page, url, start_deep, extend)
+                self._thread_pool.add_task(self.get_page, url, start_deep, extend)
         else:
-            self.__thread_pool.add_task(self.get_page, page, start_deep, extend)
+            self._thread_pool.add_task(self.get_page, page, start_deep, extend)
 
     def set_url_filter(self, url_filter):
         """

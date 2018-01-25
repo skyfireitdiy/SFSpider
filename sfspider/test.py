@@ -12,7 +12,7 @@ from sfspider.collectorfilter import *
 class MyContentCallback(ContentCallback):
     """重写solve_func，处理正文，此处将正文保存在以当前日期命名的文件夹下，文件名为网页标题"""
 
-    def solve_func(self, url, content, title):
+    def solve_func(self, url, content, title, extend):
         print(threading.current_thread().getName(), "文章标题：", title)
         '生成目录名称'
         folder_name = "news_" + time.strftime("%Y-%m-%d", time.localtime())

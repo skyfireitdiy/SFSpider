@@ -79,9 +79,9 @@
         import os
         import time
         
-        from SFSpider.MainContentAnalyzer import MainContentAnalyzer
-        from SFSpider.collector import Collector
-        from SFSpider.collectorFilter import *
+        from sfspider.maincontentanalyzer import MainContentAnalyzer
+        from sfspider.collector import Collector
+        from sfspider.collectorfilter import *
         
         '定义自己的Content回调器'
         
@@ -89,7 +89,7 @@
         class MyContentCallback(ContentCallback):
             """重写solve_func，处理正文，此处将正文保存在以当前日期命名的文件夹下，文件名为网页标题"""
         
-            def solve_func(self, url, content, title):
+            def solve_func(self, url, content, title, extend):
                 print(threading.current_thread().getName(), "文章标题：", title)
                 '生成目录名称'
                 folder_name = "news_" + time.strftime("%Y-%m-%d", time.localtime())
@@ -127,6 +127,7 @@
         '开始采集网页，采集深度为2，使用8个线程采集'
         s.start('http://bbs.tianya.cn/list-develop-1.shtml', 2, 8, True)
 
+
         ```
 
 * 注意
@@ -148,13 +149,65 @@
 
     * ​httplib2
     * BeautifulSoup
+    * PyQt5
 
     可使用以下命令安装：
 
     ```shell
     pip3 install httplib2
     pip3 install beautifulsoup4
+    pip3 install pyqt5
     ```
 
     ​
+# sfdspider
 
+简单的分布式爬虫框架，主要包含两个模块：`DistributedSpiderServer`和`DistributedSpiderClient`，其中`DistributedSpiderServer`在`sfspider.Collector`的基础上增加了一个Tcp服务器，用于监听Client的连接，除此之外，与`sfspider.Collector`的使用相同。而`DistributedSpiderClient`除了增加本地服务器、远程服务器地址外，不需要做任何操作，就可以为`DistributedSpiderServer`分担爬取任务
+
+* 例子
+
+    * testServer.py
+    ```python
+    from sfdspider.distributedspider import *
+    from sfspider.collectorfilter import *
+    from PyQt5 import QtNetwork, QtCore
+    import sys
+    
+    
+    class MyUrlFilter(UrlFilter):
+        def filter(self, url):
+            if url.startswith('/post-develop-'):
+                tmp_url = "http://bbs.tianya.cn" + url
+                return tmp_url
+            return None
+    
+    
+    class MyContentCallback(ContentCallback):
+        def solve_func(self, url, content, title, extend):
+            print(threading.current_thread().getName(), "文章标题：", title, extend)
+            pass
+    
+    
+    app = QtCore.QCoreApplication(sys.argv)
+    server = DistributedSpiderServer()
+    server.set_url_filter(MyUrlFilter())
+    server.add_content_callback(MyContentCallback())
+    server.start_server(QtNetwork.QHostAddress("127.0.0.1"), 1234, "http://bbs.tianya.cn/list-develop-1.shtml", 2, 4, False)
+    app.exec()
+
+    ```
+    
+    * testClient.py
+    ```python
+    from sfdspider.distributedspider import DistributedSpiderClient
+    from PyQt5 import QtNetwork, QtCore
+    import sys
+    
+    app = QtCore.QCoreApplication(sys.argv)
+    client = DistributedSpiderClient()
+    client.start_client(QtNetwork.QHostAddress("127.0.0.1"), 1235,
+                        QtNetwork.QHostAddress("127.0.0.1"), 1234, 4)
+    app.exec()
+    ```
+
+ 
