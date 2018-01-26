@@ -191,6 +191,10 @@ class DistributedSpiderClient(DistributedSpiderServer):
             self.__client.send_data(toolfunc.sf_pack_data("url_list", data_))
             return
         if type_ == "content":
+            for i in range(len(self._clients[sock]["task"])):
+                if self._clients[sock]["task"][i]["page"] == data_["url"]:
+                    del self._clients[sock]["task"][i]
+                    break
             self.__client.send_data(toolfunc.sf_pack_data("content", data_))
             return
 
