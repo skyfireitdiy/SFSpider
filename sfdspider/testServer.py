@@ -14,7 +14,7 @@ class MyUrlFilter(UrlFilter):
 
 class MyContentCallback(ContentCallback):
     def solve_func(self, url, content, title, extend):
-        print(threading.current_thread().getName(), "文章标题：", title, extend)
+        print(threading.current_thread().getName(), url, "文章标题：", title, extend)
         pass
 
 

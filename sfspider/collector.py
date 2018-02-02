@@ -29,6 +29,7 @@ class Collector(object):
         self._url_filter = UrlFilter()
         self._visited_url = set()
         self._thread_pool = ThreadPool()
+        self._visited_url_lock = threading.Lock()
 
     def get_page(self, url, curr_deep, extend=None):
         """
@@ -41,9 +42,12 @@ class Collector(object):
         """
         if curr_deep >= self._max_deep:
             return
+        self._visited_url_lock.acquire()
         if url in self._visited_url:
+            self._visited_url_lock.release()
             return
         self._visited_url.add(url)
+        self._visited_url_lock.release()
         try:
             if not hasattr(self._local, "http_client"):
                 self._local.http_client = httplib2.Http('.cache')
@@ -158,4 +162,6 @@ class Collector(object):
         清除历史记录
         Returns:
         """
+        self._visited_url_lock.acquire()
         self._visited_url.clear()
+        self._visited_url_lock.release()

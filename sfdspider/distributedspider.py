@@ -78,6 +78,10 @@ class DistributedSpiderServer(collector.Collector):
         task_list = self._clients[sock]["task"]
         self._clients.pop(sock)
         print(sock.errorString(), err)
+        self._visited_url_lock.acquire()
+        for task in task_list:
+            self._visited_url.remove(task["page"])
+        self._visited_url_lock.release()
         for task in task_list:
             self.add_task(task["page"], task["start_deep"], task["extend"])
 
@@ -141,15 +145,31 @@ class DistributedSpiderServer(collector.Collector):
             self._local.msg_sender.server_send_sgn.connect(self._server.send_data)
         if curr_deep >= self._max_deep:
             return
+        self._visited_url_lock.acquire()
         if url in self._visited_url:
+            self._visited_url_lock.release()
             return
+        self._visited_url_lock.release()
         sock, task_count = self.get_min_task_client()
         if sock is None or task_count > self._server_task_count:
             self._server_task_count += 1
             super().get_page(url, curr_deep, extend)
             self._server_task_count -= 1
         else:
+            self._visited_url_lock.acquire()
+            self._visited_url.add(url)
+            self._visited_url_lock.release()
             self.distribute_task(sock, url, curr_deep, extend)
+
+    def clean_history(self):
+        super().clean_history()
+        data = dict()
+        pkg = toolfunc.sf_pack_data("clear_history", data)
+        if not hasattr(self._local, "msg_sender"):
+            self._local.msg_sender = MsgSender()
+            self._local.msg_sender.server_send_sgn.connect(self._server.send_data)
+        for sock in self._clients.keys():
+            self._local.msg_sender.server_send_sgn.emit(sock, pkg)
 
 
 class DistributedSpiderClient(DistributedSpiderServer):
@@ -175,6 +195,8 @@ class DistributedSpiderClient(DistributedSpiderServer):
         if type_ == "task":
             self.add_task(data_["page"], data_["start_deep"], data_["extend"])
             return
+        if type_ == "clear_history":
+            self.clean_history()
 
     def _server_msg_coming_slot(self, sock, data):
         """
@@ -259,11 +281,14 @@ class DistributedSpiderClient(DistributedSpiderServer):
             self._local.msg_sender.client_send_sgn.connect(self.__client.send_data)
         if curr_deep >= self._max_deep:
             return
+        self._visited_url_lock.acquire()
         if url in self._visited_url:
+            self._visited_url_lock.release()
             return
+        self._visited_url.add(url)
+        self._visited_url_lock.release()
         sock, task_count = self.get_min_task_client()
         if sock is None or task_count > self._server_task_count:
-            self._visited_url.add(url)
             try:
                 self._server_task_count += 1
                 if not hasattr(self._local, "http_client"):
