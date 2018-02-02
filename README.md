@@ -150,6 +150,7 @@
     * ​httplib2
     * BeautifulSoup
     * PyQt5
+    * chardet
 
     可使用以下命令安装：
 
@@ -157,12 +158,13 @@
     pip3 install httplib2
     pip3 install beautifulsoup4
     pip3 install pyqt5
+    pip3 install chardet
     ```
 
     ​
 # sfdspider
 
-简单的分布式爬虫框架，主要包含两个模块：`DistributedSpiderServer`和`DistributedSpiderClient`，其中`DistributedSpiderServer`在`sfspider.Collector`的基础上增加了一个Tcp服务器，用于监听Client的连接，除此之外，与`sfspider.Collector`的使用相同。而`DistributedSpiderClient`除了增加本地服务器、远程服务器地址外，不需要做任何操作，就可以为`DistributedSpiderServer`分担爬取任务
+简单的分布式爬虫框架，主要包含两个模块：`DistributedSpiderServer`和`DistributedSpiderClient`，其中`DistributedSpiderServer`在`sfspider.Collector`的基础上增加了一个Tcp服务器，用于监听Client的连接，除此之外，与`sfspider.Collector`的使用方法相同。而`DistributedSpiderClient`除了增加本地服务器、远程服务器地址外，不需要做任何操作，就可以为`DistributedSpiderServer`分担爬取任务
 
 * 例子
 
