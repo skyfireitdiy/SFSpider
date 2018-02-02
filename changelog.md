@@ -1,3 +1,8 @@
+**skyfire** *2018/02/02*
+1. 为visited_url加锁
+2. 在主节点clear history的时候，同时向子节点方清除命令
+3. 修改visited url添加逻辑，避免url重复访问
+
 **skyfire** *2018/01/26*
 1. 修复客户端收到`content`消息的响应
 
