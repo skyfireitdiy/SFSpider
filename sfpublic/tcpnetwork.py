@@ -40,7 +40,7 @@ class TcpServer(QtCore.QObject):
         while self._clients[sock].size() - pos > 4:
             data_len = struct.unpack("i", self._clients[sock].mid(pos, 4))[0]
             if self._clients[sock].size() - pos - 4 < data_len:
-                return
+                break
             self.data_coming_callback(sock, bytes(self._clients[sock].mid(pos + 4, data_len).data()))
             pos += data_len + 4
         self._clients[sock].remove(0, pos)
@@ -165,9 +165,10 @@ class TcpClient(QtCore.QObject):
         while self._buffer.size() - pos > 4:
             data_len = struct.unpack("i", self._buffer.mid(pos, 4))[0]
             if self._buffer.size() - pos - 4 < data_len:
-                return
+                break
             self.data_coming_callback(bytes(self._buffer.mid(pos + 4, data_len).data()))
             pos += data_len + 4
+        self._buffer.remove(0, pos)
 
     def data_coming_callback(self, data):
         """

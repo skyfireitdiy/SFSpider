@@ -64,12 +64,16 @@ class Collector(object):
             for k in self._text_callback:
                 k.callback(url, content_str, bs.title.string, extend)
             link_list = bs.select('a')
+            url_list = set()
             for i in link_list:
                 tmp_url = None
                 if i.has_attr('href'):
                     tmp_url = i.attrs['href']
                 if i.has_attr('src'):
                     tmp_url = i.attrs['src']
+                if tmp_url is not  None:
+                    url_list.add(tmp_url)
+            for tmp_url in url_list:
                 if tmp_url is not None:
                     for k in self._url_callback:
                         k.callback(tmp_url, extend)

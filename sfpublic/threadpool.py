@@ -38,7 +38,6 @@ class ThreadPool:
                         task = self.__outter.task_list.get(False)
                         if len(task) != 0:
                             task[0](*task[1:])
-                        self.__outter.task_list.task_done()
                     except Exception as e:
                         print(e)
                         continue

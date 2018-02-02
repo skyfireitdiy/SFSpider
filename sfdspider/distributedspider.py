@@ -280,10 +280,12 @@ class DistributedSpiderClient(DistributedSpiderServer):
             self._local.msg_sender.server_send_sgn.connect(self._server.send_data)
             self._local.msg_sender.client_send_sgn.connect(self.__client.send_data)
         if curr_deep >= self._max_deep:
+            self._report_content(url, "", "", extend)
             return
         self._visited_url_lock.acquire()
         if url in self._visited_url:
             self._visited_url_lock.release()
+            self._report_content(url, "", "", extend)
             return
         self._visited_url.add(url)
         self._visited_url_lock.release()
