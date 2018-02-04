@@ -46,6 +46,6 @@ my_content_callback.set_next_callback(MyContentCallback())
 '将Content回调器加入收集器'
 s.add_content_callback(my_content_callback)
 '添加我们的url过滤器'
-s.set_url_filter(MyUrlFilter())
+s.set_url_filter(MyUrlFilter)
 '开始采集网页，采集深度为2，使用8个线程采集'
 s.start('http://bbs.tianya.cn/list-develop-1.shtml', 2, 8, True)

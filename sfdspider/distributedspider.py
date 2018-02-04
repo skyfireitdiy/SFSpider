@@ -48,7 +48,7 @@ class DistributedSpiderServer(collector.Collector):
             for url in data_["url_list"]:
                 for k in self._url_callback:
                     k.callback(url, data_["extend"])
-                tmp_url = self._url_filter.filter(url)
+                tmp_url = self._UrlFilter().filter(url)
                 if tmp_url is not None:
                     self.add_task(tmp_url, data_["curr_deep"], data_["extend"])
             return
@@ -291,38 +291,33 @@ class DistributedSpiderClient(DistributedSpiderServer):
         self._visited_url_lock.release()
         sock, task_count = self.get_min_task_client()
         if sock is None or task_count > self._server_task_count:
-            try:
-                self._server_task_count += 1
-                if not hasattr(self._local, "http_client"):
-                    self._local.http_client = httplib2.Http('.cache')
-                response, content = self._local.http_client.request(url, 'GET', headers=self._header)
-            except Exception as e:
-                print("http error", e)
+            self._server_task_count += 1
+            if not hasattr(self._local, "http_client"):
+                self._local.http_client = self._GetterType()
+            content = self._local.http_client.get(url, extend)
+            if content is None:
                 self._report_content(url, "", "", extend)
+                self._server_task_count -= 1
                 return
-            if response['status'] == '200' or response['status'] == '304':
-                content_str, flag = toolfunc.sf_decode_str(content)
-                if not flag:
-                    print("decode error")
-                    self._report_content(url, "", "", extend)
-                    return
-                bs = BeautifulSoup(content_str, 'html.parser')
-                self._report_content(url, content_str, bs.title.string, extend)
-                link_list = bs.select('a')
-                url_list = set()
-                for i in link_list:
-                    tmp_url = None
-                    if i.has_attr('href'):
-                        tmp_url = i.attrs['href']
-                    if i.has_attr('src'):
-                        tmp_url = i.attrs['src']
-                    if tmp_url is not None:
-                        url_list.add(tmp_url)
-                self._report_urls(list(url_list), curr_deep + 1, extend)
-            else:
-                print('status error:', response)
-                self._report_content(url, "", "", extend)
-                print(url)
+            content_str, flag = toolfunc.sf_decode_str(content)
+            if not flag:
+                print("decode error")
+                self._report_content(url, content, "", extend)
+                self._server_task_count -= 1
+                return
+            bs = BeautifulSoup(content_str, 'html.parser')
+            self._report_content(url, content_str, bs.title.string, extend)
+            link_list = bs.select('a')
+            url_list = set()
+            for i in link_list:
+                tmp_url = None
+                if i.has_attr('href'):
+                    tmp_url = i.attrs['href']
+                if i.has_attr('src'):
+                    tmp_url = i.attrs['src']
+                if tmp_url is not None:
+                    url_list.add(tmp_url)
+            self._report_urls(list(url_list), curr_deep + 1, extend)
             self._server_task_count -= 1
         else:
             self.distribute_task(sock, url, curr_deep, extend)

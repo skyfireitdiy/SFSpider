@@ -1,13 +1,14 @@
 # coding=utf-8
 
 import threading
-import httplib2
 from bs4 import BeautifulSoup
-from sfpublic.threadpool import ThreadPool
 from sfpublic import toolfunc
+from sfpublic.threadpool import ThreadPool
 from sfspider.collectorfilter import ContentCallback
 from sfspider.collectorfilter import UrlCallBack
 from sfspider.collectorfilter import UrlFilter
+from sfspider.netgetter import DefaultNetGetter
+from sfspider.netgetter import NetGetter
 
 """
 网页收集器（不支持js执行）
@@ -15,21 +16,29 @@ from sfspider.collectorfilter import UrlFilter
 
 
 class Collector(object):
-
     def __init__(self):
         print("init")
-        self._header = dict()
-        self._header['User-Agent'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                                      'Chrome/63.0.3239.84 Safari/537.36'
         self._local = threading.local()
         self._max_deep = 1
         self._page_set = set()
         self._url_callback = set()
         self._text_callback = set()
-        self._url_filter = UrlFilter()
+        self._UrlFilter = UrlFilter
         self._visited_url = set()
         self._thread_pool = ThreadPool()
         self._visited_url_lock = threading.Lock()
+        self._GetterType = DefaultNetGetter
+
+    def set_getter(self, getter_type):
+        """
+        设置getter类型
+        :param getter_type: Getter的类型(必须为sfspider.netgetter.NetGetter的子类)
+        :return:
+        """
+        if not issubclass(getter_type, NetGetter):
+            print("getter_type must be subclass of sfspider.netgetter.NetGetter")
+            return
+        self._GetterType = getter_type
 
     def get_page(self, url, curr_deep, extend=None):
         """
@@ -48,41 +57,39 @@ class Collector(object):
             return
         self._visited_url.add(url)
         self._visited_url_lock.release()
-        try:
-            if not hasattr(self._local, "http_client"):
-                self._local.http_client = httplib2.Http('.cache')
-            response, content = self._local.http_client.request(url, 'GET', headers=self._header)
-        except Exception as e:
-            print("http error", e)
+        if not hasattr(self._local, "http_client"):
+            self._local.http_client = self._GetterType()
+        content = self._local.http_client.get(url, extend)
+        if content is None:
+            print("get page error", url)
             return
-        if response['status'] == '200' or response['status'] == '304':
-            content_str, flag = toolfunc.sf_decode_str(content)
-            if not flag:
-                print("decode error")
-                return
-            bs = BeautifulSoup(content_str, 'html.parser')
+        content_str, flag = toolfunc.sf_decode_str(content)
+        if not flag:
+            print("decode error, maybe binary")
+            # 注意：此处代码在内容无法解析为字符串时调用（比如图片、文件等）
             for k in self._text_callback:
-                k.callback(url, content_str, bs.title.string, extend)
-            link_list = bs.select('a')
-            url_list = set()
-            for i in link_list:
-                tmp_url = None
-                if i.has_attr('href'):
-                    tmp_url = i.attrs['href']
-                if i.has_attr('src'):
-                    tmp_url = i.attrs['src']
-                if tmp_url is not  None:
-                    url_list.add(tmp_url)
-            for tmp_url in url_list:
-                if tmp_url is not None:
-                    for k in self._url_callback:
-                        k.callback(tmp_url, extend)
-                    tmp_url = self._url_filter.filter(tmp_url)
-                if tmp_url is not None:
-                    self._thread_pool.add_task(self.get_page, tmp_url, curr_deep + 1, extend)
-        else:
-            print('status error:', response)
-            print(url)
+                k.callback(url, content, "", extend)
+            return
+        bs = BeautifulSoup(content_str, 'html.parser')
+        for k in self._text_callback:
+            k.callback(url, content_str, bs.title.string, extend)
+        link_list = bs.select('a')
+        url_list = set()
+        for i in link_list:
+            tmp_url = None
+            if i.has_attr('href'):
+                tmp_url = i.attrs['href']
+            if i.has_attr('src'):
+                tmp_url = i.attrs['src']
+            if tmp_url is not None:
+                url_list.add(tmp_url)
+        for tmp_url in url_list:
+            if tmp_url is not None:
+                for k in self._url_callback:
+                    k.callback(tmp_url, extend)
+                tmp_url = self._UrlFilter().filter(tmp_url)
+            if tmp_url is not None:
+                self._thread_pool.add_task(self.get_page, tmp_url, curr_deep + 1, extend)
 
     def start(self, begin_page, deep=1, thread_count=4, wait_exit=True, extend=None):
         """
@@ -124,12 +131,12 @@ class Collector(object):
         """
         增加Url过滤器
         Args:
-            url_filter: Url过滤器对象
+            url_filter: Url过滤器类
         """
-        if not isinstance(url_filter, UrlFilter):
-            print(url_filter, 'is not a UrlFilter instance')
+        if not issubclass(url_filter, UrlFilter):
+            print(url_filter, 'is not a subclass of UrlFilter')
             return
-        self._url_filter = url_filter
+        self._UrlFilter = url_filter
 
     def add_url_callback(self, callback):
         """

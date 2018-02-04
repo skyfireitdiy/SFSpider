@@ -165,7 +165,7 @@ class ContentCallback:
         处理过程，应该被重写
         Args:
             url:要处理的url
-            content:要处理的内容
+            content:要处理的内容（可能是二进制数据，使用是需要判断是bytes还是str）
             title:要处理的标题
             extend:附加数据
         """

@@ -8,9 +8,10 @@
 
 
 
-`SFSpider`是一个通用的网络爬虫框架，目前包括线程池（`ThreadPool`）、收集器（`Collector`）、Url过滤器（`UrlFilter`）、url回调器（`UrlCallBack`）、content回调器（`ContentCallback`），以及一个用于抽取网页正文的正文抽取器（`MainContentAnalyzer`）
+`SFSpider`是一个通用的网络爬虫框架，目前包括线程池（`ThreadPool`）、网页获取器（`NetGetter`）、收集器（`Collector`）、Url过滤器（`UrlFilter`）、url回调器（`UrlCallBack`）、content回调器（`ContentCallback`），以及一个用于抽取网页正文的正文抽取器（`MainContentAnalyzer`）
 
 * 模块介绍
+    * `NetGetter`：网页获取器接口类。该模块为采集器服务，采集器最终调用此模块来抓取网页，可将此模块理解为一个HTTP客户端。（默认提供一个实现`DefaultNetGetter`，使用`httplib2`的`request`方法抓取网页内容）。
     * `Collector`：采集器。该模块主要负责url的访问，采用深度优先遍历采集网页。在采集过程中调用`UrlFilter`来确定是否需要访问，页面采集完成后，会调用`UrlCallBack`和`ContentCallback`分别对网页中的Url和网页内容处理。
     * `UrlFilter`：url过滤器，url传到此模块，如果模块函数返回`True`，表示允许下一步访问，采集器会对该url进行采集，返回`False`则不会对该Url进行下一步采集。
     * `UrlCallBack`：url回调器。网页采集完毕后，采集器会扫描网页上的`<a>`标签链接，对于每个链接，都会调用此模块处理。
@@ -123,11 +124,9 @@
         '将Content回调器加入收集器'
         s.add_content_callback(my_content_callback)
         '添加我们的url过滤器'
-        s.set_url_filter(MyUrlFilter())
+        s.set_url_filter(MyUrlFilter)
         '开始采集网页，采集深度为2，使用8个线程采集'
         s.start('http://bbs.tianya.cn/list-develop-1.shtml', 2, 8, True)
-
-
         ```
 
 * 注意
@@ -186,13 +185,13 @@
     
     class MyContentCallback(ContentCallback):
         def solve_func(self, url, content, title, extend):
-            print(threading.current_thread().getName(), "文章标题：", title, extend)
+            print(threading.current_thread().getName(), url, "文章标题：", title, extend)
             pass
     
     
     app = QtCore.QCoreApplication(sys.argv)
     server = DistributedSpiderServer()
-    server.set_url_filter(MyUrlFilter())
+    server.set_url_filter(MyUrlFilter)
     server.add_content_callback(MyContentCallback())
     server.start_server(QtNetwork.QHostAddress("127.0.0.1"), 1234, "http://bbs.tianya.cn/list-develop-1.shtml", 2, 4, False)
     app.exec()
