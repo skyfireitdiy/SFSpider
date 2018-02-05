@@ -146,7 +146,7 @@ class DistributedSpiderServer(collector.Collector):
         if curr_deep >= self._max_deep:
             return
         self._visited_url_lock.acquire()
-        if url in self._visited_url:
+        if self._visited_url.contains(url):
             self._visited_url_lock.release()
             return
         self._visited_url_lock.release()
@@ -283,7 +283,7 @@ class DistributedSpiderClient(DistributedSpiderServer):
             self._report_content(url, "", "", extend)
             return
         self._visited_url_lock.acquire()
-        if url in self._visited_url:
+        if self._visited_url.contains(url):
             self._visited_url_lock.release()
             self._report_content(url, "", "", extend)
             return

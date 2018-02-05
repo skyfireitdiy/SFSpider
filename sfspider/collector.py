@@ -9,6 +9,8 @@ from sfspider.collectorfilter import UrlCallBack
 from sfspider.collectorfilter import UrlFilter
 from sfspider.netgetter import DefaultNetGetter
 from sfspider.netgetter import NetGetter
+from sfspider.urlset import UrlSet
+from sfspider.urlset import DefaultUrlSet
 
 """
 网页收集器（不支持js执行）
@@ -24,10 +26,20 @@ class Collector(object):
         self._url_callback = set()
         self._text_callback = set()
         self._UrlFilter = UrlFilter
-        self._visited_url = set()
+        self._visited_url = DefaultUrlSet()
         self._thread_pool = ThreadPool()
         self._visited_url_lock = threading.Lock()
         self._GetterType = DefaultNetGetter
+
+    def set_url_set(self, urlset_type):
+        """
+        设置UrlSet类型（存储已访问的url）
+        :param urlset_type: UrlSet类
+        """
+        if not issubclass(urlset_type, UrlSet):
+            print("urlset_type must be subclass of sfspider.urlset.UrlSet")
+            return
+        self._visited_url = urlset_type()
 
     def set_getter(self, getter_type):
         """
@@ -52,7 +64,7 @@ class Collector(object):
         if curr_deep >= self._max_deep:
             return
         self._visited_url_lock.acquire()
-        if url in self._visited_url:
+        if self._visited_url.contains(url):
             self._visited_url_lock.release()
             return
         self._visited_url.add(url)
